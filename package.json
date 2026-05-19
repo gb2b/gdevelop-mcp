@@ -30,7 +30,7 @@
     "@napi-rs/canvas": "^1.0.0",
     "gdexporter": "^4.0.0-beta7",
     "puppeteer": "^25.0.4",
-    "zod": "^3.23.8"
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/node": "^25.9.1",
