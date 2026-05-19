@@ -154,7 +154,12 @@ export function listVariableTypes(
       { name: "Array", description: "Ordered list of variables" },
     ];
   }
-  const body = enumMatch[1];
+  // Strip C/C++ comments before splitting (otherwise lines like
+  // `// Primitive types` clip the following enum member when we split
+  // by `,`).
+  const body = enumMatch[1]
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/\/\/.*$/gm, "");
   const items = body
     .split(",")
     .map((s) => s.trim())

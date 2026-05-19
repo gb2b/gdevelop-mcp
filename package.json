@@ -1,6 +1,6 @@
 {
   "name": "gdevelop-mcp",
-  "version": "0.16.1",
+  "version": "0.16.2",
   "description": "MCP server for GDevelop project introspection and validation",
   "type": "module",
   "bin": {

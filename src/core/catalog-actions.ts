@@ -438,6 +438,8 @@ export function buildInstructionCatalog(
   }
 
   // 2. Core/GDCore/Extensions/Builtin/*.cpp — built-in C++ extensions
+  // Walks both flat files (e.g. AudioExtension.cpp) AND subdirectories
+  // (e.g. SpriteExtension/SpriteExtension.cpp, SpriteExtension/SpriteObject.cpp).
   const coreBuiltinPath = join(
     install.resourcesPath,
     "Core",
@@ -446,23 +448,42 @@ export function buildInstructionCatalog(
     "Builtin",
   );
   if (existsSync(coreBuiltinPath)) {
-    try {
-      const files = readdirSync(coreBuiltinPath).filter((f) =>
-        /Extension\.cpp$/.test(f),
-      );
-      for (const f of files) {
-        const src = readSafe(join(coreBuiltinPath, f));
-        if (!src) continue;
-        const extName = f.replace(/Extension\.cpp$/, "");
-        parseCppExtension(all, `Builtin${extName}`, src);
-      }
-    } catch {
-      // ignore
-    }
+    parseCoreBuiltinDir(all, coreBuiltinPath);
   }
 
   cached = all;
   return cached;
+}
+
+function parseCoreBuiltinDir(all: InstructionSpec[], dir: string): void {
+  let entries;
+  try {
+    entries = readdirSync(dir, { withFileTypes: true });
+  } catch {
+    return;
+  }
+  for (const entry of entries) {
+    const full = join(dir, entry.name);
+    if (entry.isDirectory()) {
+      // e.g. SpriteExtension/<files>. The extension name is the dir name
+      // minus the trailing "Extension".
+      const extName = entry.name.replace(/Extension$/, "");
+      let subFiles;
+      try {
+        subFiles = readdirSync(full).filter((f) => /\.cpp$/.test(f));
+      } catch {
+        continue;
+      }
+      for (const f of subFiles) {
+        const src = readSafe(join(full, f));
+        if (src) parseCppExtension(all, extName, src);
+      }
+    } else if (entry.isFile() && /Extension\.cpp$/.test(entry.name)) {
+      const extName = entry.name.replace(/Extension\.cpp$/, "");
+      const src = readSafe(full);
+      if (src) parseCppExtension(all, extName, src);
+    }
+  }
 }
 
 export function resetInstructionCatalogCache(): void {

@@ -3,6 +3,26 @@
 All notable changes to this project are documented here. Versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.16.2] — 2026-05-20
+
+### Fixed
+
+- **`list_variable_types`** missed `String` and `Structure`. Root cause:
+  the enum body contains `// Primitive types` / `// Collection types`
+  comments; our `split(",")` then `.split(/\s|=/)[0]` returned the `//`
+  comment marker before the member name, failing the validator regex.
+  Fix: strip C/C++ comments before splitting. Now returns 7 entries
+  (Unknown, MixedTypes, String, Number, Boolean, Structure, Array).
+
+- **C++ extensions in `Core/GDCore/Extensions/Builtin/` subdirectories
+  were not catalogued**. Big extensions like Sprite live in
+  `Builtin/SpriteExtension/SpriteExtension.cpp` (subdir), and we only
+  walked the flat layer. Fix: recursive walk of `Builtin/` — every
+  `.cpp` inside a subdir is parsed with the subdir-derived extension
+  name. Catalogue grows from 1768 to **1831** instructions; queries
+  like `list_instructions(extension: "Sprite")` now return all
+  Sprite actions/conditions/expressions.
+
 ## [0.16.1] — 2026-05-20
 
 ### Fixed
