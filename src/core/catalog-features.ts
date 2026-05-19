@@ -21,45 +21,48 @@ export type EventTypeInfo = {
   sourceFile: string;
 };
 
+// Match optional API macro (GD_CORE_API, GDJS_API…) before the class name.
 const EVENT_CLASS_RE =
-  /class\s+GD_CORE_API\s+([A-Za-z0-9_]+)\s*:\s*(?:public|protected|private)?\s*(?:gd::)?BaseEvent/g;
+  /class\s+(?:[A-Z][A-Z0-9_]*\s+)?([A-Za-z][A-Za-z0-9_]*)\s*:\s*(?:public|protected|private)?\s*(?:gd::)?BaseEvent\b/g;
+
+const EVENT_DIRS = [
+  ["Core", "GDCore", "Events", "Builtin"],
+  ["GDJS", "GDJS", "Events", "Builtin"],
+];
 
 export function listEventTypes(install: GDevelopInstall): EventTypeInfo[] {
-  const dir = join(
-    install.resourcesPath,
-    "Core",
-    "GDCore",
-    "Events",
-    "Builtin",
-  );
-  if (!existsSync(dir)) return [];
   const out: EventTypeInfo[] = [];
-  try {
-    const files = readdirSync(dir).filter((f) =>
-      /Event\.h$|Event\.cpp$/.test(f),
-    );
-    const seen = new Set<string>();
-    for (const f of files) {
-      const src = readSafe(join(dir, f));
-      if (!src) continue;
-      for (const m of src.matchAll(EVENT_CLASS_RE)) {
-        const className = m[1];
-        if (seen.has(className)) continue;
-        seen.add(className);
-        const canHaveSubEvents = /CanHaveSubEvents|GetSubEvents/.test(src);
-        // Best-effort: derive the BuiltinCommonInstructions::X type from the class name
-        const stripped = className.replace(/Event$/, "");
-        out.push({
-          type: `BuiltinCommonInstructions::${stripped}`,
-          className,
-          canHaveSubEvents,
-          sourceFile: f,
-        });
+  const seen = new Set<string>();
+
+  for (const segments of EVENT_DIRS) {
+    const dir = join(install.resourcesPath, ...segments);
+    if (!existsSync(dir)) continue;
+    try {
+      const files = readdirSync(dir).filter((f) =>
+        /Event\.h$|Event\.cpp$/.test(f),
+      );
+      for (const f of files) {
+        const src = readSafe(join(dir, f));
+        if (!src) continue;
+        for (const m of src.matchAll(EVENT_CLASS_RE)) {
+          const className = m[1];
+          if (seen.has(className)) continue;
+          seen.add(className);
+          const canHaveSubEvents = /CanHaveSubEvents|GetSubEvents/.test(src);
+          const stripped = className.replace(/Event$/, "");
+          out.push({
+            type: `BuiltinCommonInstructions::${stripped}`,
+            className,
+            canHaveSubEvents,
+            sourceFile: `${segments.join("/")}/${f}`,
+          });
+        }
       }
+    } catch {
+      // ignore
     }
-  } catch {
-    // ignore
   }
+
   return out;
 }
 

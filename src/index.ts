@@ -58,7 +58,7 @@ import {
 
 const server = new McpServer({
   name: "gdevelop-mcp",
-  version: "0.16.0",
+  version: "0.16.1",
 });
 
 function textResult(value: unknown) {

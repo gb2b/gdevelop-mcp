@@ -29,6 +29,10 @@ const INCLUDE_PREFIXES = [
   "GDJS/Runtime/",
   // TypeScript types
   "GDJS/Runtime/types/",
+  // GDJS platform-specific C++ (JsCodeEvent, code generation, etc.)
+  "GDJS/GDJS/Events/",
+  "GDJS/GDJS/Extensions/",
+  "GDJS/GDJS/IDE/",
 ];
 
 const INCLUDE_EXT = [

@@ -3,6 +3,18 @@
 All notable changes to this project are documented here. Versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.16.1] — 2026-05-20
+
+### Fixed
+
+- **`list_event_types`** was missing `JsCodeEvent` (the inline-JS event).
+  Root cause: GDJS-platform events live in `GDJS/GDJS/Events/Builtin/`
+  which wasn't synced (the sync prefix only covered Core + GDJS/Runtime/),
+  and the class regex required an API macro (`GD_CORE_API`) which the
+  GDJS platform header doesn't use. Fixed both: added the prefix, relaxed
+  the regex to accept any optional macro. Now returns 11 event types
+  including `BuiltinCommonInstructions::JsCode`.
+
 ## [0.16.0] — 2026-05-20
 
 ### Fixed
