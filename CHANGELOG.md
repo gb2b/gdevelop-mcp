@@ -3,6 +3,35 @@
 All notable changes to this project are documented here. Versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.15.0] — 2026-05-20
+
+### Added
+
+- **C++ Extension.cpp parser**: the instruction catalog now reads
+  `Extensions/<Name>/Extension.cpp` and `Core/GDCore/Extensions/Builtin/*.cpp`
+  in addition to `JsExtension.js`. Result: instruction count jumped from
+  ~800 to **~1770** — covers all action/condition/expression definitions
+  from C++ extensions (Sprite, PlatformBehavior, Physics, etc.). Each
+  instruction now carries a `fullName` and `description` extracted from
+  the `_(...)` i18n macros.
+- **`gdevelop_overview`** tool: returns a concise architectural map of
+  GDevelop (where to find what in the source tree + which MCP tool to use
+  for each kind of question). Read this BEFORE deep-diving to save tokens.
+- **`list_event_types`** tool: built-in event types (Standard, Comment,
+  Group, ForEach, Repeat, While, Link, JsCode) parsed from
+  `Core/GDCore/Events/Builtin/`.
+- **`list_resource_types`** tool: 13 resource types (image, audio, font,
+  video, json, spine, tilemap, tileset, …) parsed from
+  `Core/GDCore/Project/`.
+- **`list_variable_types`** tool: variable primitive types parsed from
+  `Core/GDCore/Project/Variable.h` (with hardcoded fallback).
+
+### Changed
+
+- `InstructionSpec.source` is now `"static" | "dynamic-js" | "dynamic-cpp"`
+  to distinguish the origin of each entry.
+- `buildInstructionCatalog` walks both JS and C++ extension files.
+
 ## [0.14.0] — 2026-05-20
 
 ### Architecture pivot — GitHub as single source of truth

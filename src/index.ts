@@ -33,6 +33,12 @@ import {
   readManifest,
 } from "./core/cache.js";
 import { searchGdevelopCode } from "./core/search.js";
+import {
+  listEventTypes,
+  listResourceTypes,
+  listVariableTypes,
+} from "./core/catalog-features.js";
+import { GDEVELOP_OVERVIEW } from "./core/overview.js";
 import { fetchGitHubPath } from "./core/github.js";
 import {
   getAssetPacks,
@@ -50,7 +56,7 @@ import {
 
 const server = new McpServer({
   name: "gdevelop-mcp",
-  version: "0.14.0",
+  version: "0.15.0",
 });
 
 function textResult(value: unknown) {
@@ -200,6 +206,60 @@ server.tool(
     try {
       const report = await checkRuntimeFreshness();
       return textResult(report);
+    } catch (err) {
+      return errorResult((err as Error).message);
+    }
+  },
+);
+
+server.tool(
+  "gdevelop_overview",
+  "Returns a concise architectural map of GDevelop: where to look for what in the source tree, plus pointers to the right MCP tools for each kind of question. Read this BEFORE deep-diving — it saves token spend by directing you to the right files.",
+  {},
+  async () => {
+    return textResult(GDEVELOP_OVERVIEW);
+  },
+);
+
+server.tool(
+  "list_event_types",
+  "List the built-in event types defined in Core/GDCore/Events/Builtin/. Each entry has the JSON type identifier (BuiltinCommonInstructions::<X>) and whether it can have nested sub-events.",
+  {},
+  async () => {
+    try {
+      const install = findGDevelopInstall();
+      const eventTypes = listEventTypes(install);
+      return textResult({ count: eventTypes.length, eventTypes });
+    } catch (err) {
+      return errorResult((err as Error).message);
+    }
+  },
+);
+
+server.tool(
+  "list_resource_types",
+  "List the resource types (image, audio, font, json, video…) defined in Core/GDCore/Project/. Use to know what kinds of assets a project's resources array can hold.",
+  {},
+  async () => {
+    try {
+      const install = findGDevelopInstall();
+      const resourceTypes = listResourceTypes(install);
+      return textResult({ count: resourceTypes.length, resourceTypes });
+    } catch (err) {
+      return errorResult((err as Error).message);
+    }
+  },
+);
+
+server.tool(
+  "list_variable_types",
+  "List GDevelop's variable primitive types (Number, String, Boolean, Structure, Array). Parsed from Core/GDCore/Project/Variable.h.",
+  {},
+  async () => {
+    try {
+      const install = findGDevelopInstall();
+      const variableTypes = listVariableTypes(install);
+      return textResult({ count: variableTypes.length, variableTypes });
     } catch (err) {
       return errorResult((err as Error).message);
     }

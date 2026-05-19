@@ -14,7 +14,7 @@ export type InstructionSpec = {
   description: string;
   kind: "action" | "condition" | "expression" | "strExpression";
   extension: string;
-  source: "static" | "dynamic";
+  source: "static" | "dynamic-js" | "dynamic-cpp";
 };
 
 const STATIC_INSTRUCTIONS: InstructionSpec[] = [
@@ -222,14 +222,36 @@ const STATIC_INSTRUCTIONS: InstructionSpec[] = [
 ];
 
 // ============================================================================
-// DYNAMIC PARSING — from JsExtension.js files in the local GDJS install
+// DYNAMIC PARSING — JsExtension.js (JS extensions) + Extension.cpp (C++)
 // ============================================================================
 
-const ADD_ACTION_RE = /\.addAction\s*\(\s*['"]([A-Za-z0-9_]+)['"]/g;
-const ADD_CONDITION_RE = /\.addCondition\s*\(\s*['"]([A-Za-z0-9_]+)['"]/g;
-const ADD_EXPRESSION_RE = /\.addExpression\s*\(\s*['"]([A-Za-z0-9_]+)['"]/g;
-const ADD_STR_EXPRESSION_RE =
-  /\.addStrExpression\s*\(\s*['"]([A-Za-z0-9_]+)['"]/g;
+// JS pattern: extension.addAction("Name", ...)
+const JS_ADD_ACTION_RE =
+  /\.addAction\s*\(\s*['"]([A-Za-z0-9_]+)['"](?:\s*,\s*['"]([^'"]*)['"])?(?:\s*,\s*['"]([^'"]*)['"])?/g;
+const JS_ADD_CONDITION_RE =
+  /\.addCondition\s*\(\s*['"]([A-Za-z0-9_]+)['"](?:\s*,\s*['"]([^'"]*)['"])?(?:\s*,\s*['"]([^'"]*)['"])?/g;
+const JS_ADD_EXPRESSION_RE =
+  /\.addExpression\s*\(\s*['"]([A-Za-z0-9_]+)['"](?:\s*,\s*['"]([^'"]*)['"])?(?:\s*,\s*['"]([^'"]*)['"])?/g;
+const JS_ADD_STR_EXPRESSION_RE =
+  /\.addStrExpression\s*\(\s*['"]([A-Za-z0-9_]+)['"](?:\s*,\s*['"]([^'"]*)['"])?(?:\s*,\s*['"]([^'"]*)['"])?/g;
+
+// C++ pattern: extension.AddAction("Name", _("Full"), _("Desc"), _("Sentence"), _("Group"), "icon", "smallicon")
+// Captures name (always plain string), fullName and description (i18n-wrapped, optional)
+const CPP_ADD_ACTION_RE =
+  /\.AddAction\s*\(\s*"([A-Za-z0-9_]+)"(?:\s*,\s*_\(\s*"([^"]*)"\s*\))?(?:\s*,\s*_\(\s*"([^"]*)"\s*\))?/g;
+const CPP_ADD_CONDITION_RE =
+  /\.AddCondition\s*\(\s*"([A-Za-z0-9_]+)"(?:\s*,\s*_\(\s*"([^"]*)"\s*\))?(?:\s*,\s*_\(\s*"([^"]*)"\s*\))?/g;
+const CPP_ADD_EXPRESSION_RE =
+  /\.AddExpression\s*\(\s*"([A-Za-z0-9_]+)"(?:\s*,\s*_\(\s*"([^"]*)"\s*\))?(?:\s*,\s*_\(\s*"([^"]*)"\s*\))?/g;
+const CPP_ADD_STR_EXPRESSION_RE =
+  /\.AddStrExpression\s*\(\s*"([A-Za-z0-9_]+)"(?:\s*,\s*_\(\s*"([^"]*)"\s*\))?(?:\s*,\s*_\(\s*"([^"]*)"\s*\))?/g;
+
+// Some C++ files use AddExpressionAndCondition / AddDuplicatedAction / etc.
+// Capture commonly-named variants as actions/conditions by name.
+const CPP_ADD_EXPR_AND_COND_RE =
+  /\.AddExpressionAndCondition(?:For[A-Za-z]+)?\s*\(\s*"([A-Za-z0-9_]+)"\s*,\s*"([A-Za-z0-9_]+)"(?:\s*,\s*_\(\s*"([^"]*)"\s*\))?/g;
+const CPP_ADD_SCOPED_BEHAVIOR_RE =
+  /\.AddScopedAction\s*\(\s*"([A-Za-z0-9_]+)"(?:\s*,\s*_\(\s*"([^"]*)"\s*\))?(?:\s*,\s*_\(\s*"([^"]*)"\s*\))?/g;
 
 function readSafe(path: string): string | null {
   try {
@@ -239,13 +261,149 @@ function readSafe(path: string): string | null {
   }
 }
 
-function extractMatches(src: string, re: RegExp): string[] {
-  const out: string[] = [];
-  for (const m of src.matchAll(re)) out.push(m[1]);
+type Match = { name: string; fullName?: string; description?: string };
+
+function extractTriplets(src: string, re: RegExp): Match[] {
+  const out: Match[] = [];
+  for (const m of src.matchAll(re)) {
+    out.push({
+      name: m[1],
+      fullName: m[2] || undefined,
+      description: m[3] || undefined,
+    });
+  }
   return out;
 }
 
 let cached: InstructionSpec[] | null = null;
+
+function pushAll(
+  all: InstructionSpec[],
+  matches: Match[],
+  kind: InstructionSpec["kind"],
+  extension: string,
+  source: InstructionSpec["source"],
+): void {
+  for (const m of matches) {
+    all.push({
+      type: m.name,
+      fullName: m.fullName ?? m.name,
+      description: m.description ?? "",
+      kind,
+      extension,
+      source,
+    });
+  }
+}
+
+function parseJsExtension(
+  all: InstructionSpec[],
+  extension: string,
+  src: string,
+): void {
+  pushAll(
+    all,
+    extractTriplets(src, JS_ADD_ACTION_RE),
+    "action",
+    extension,
+    "dynamic-js",
+  );
+  pushAll(
+    all,
+    extractTriplets(src, JS_ADD_CONDITION_RE),
+    "condition",
+    extension,
+    "dynamic-js",
+  );
+  pushAll(
+    all,
+    extractTriplets(src, JS_ADD_EXPRESSION_RE),
+    "expression",
+    extension,
+    "dynamic-js",
+  );
+  pushAll(
+    all,
+    extractTriplets(src, JS_ADD_STR_EXPRESSION_RE),
+    "strExpression",
+    extension,
+    "dynamic-js",
+  );
+}
+
+function parseCppExtension(
+  all: InstructionSpec[],
+  extension: string,
+  src: string,
+): void {
+  pushAll(
+    all,
+    extractTriplets(src, CPP_ADD_ACTION_RE),
+    "action",
+    extension,
+    "dynamic-cpp",
+  );
+  pushAll(
+    all,
+    extractTriplets(src, CPP_ADD_CONDITION_RE),
+    "condition",
+    extension,
+    "dynamic-cpp",
+  );
+  pushAll(
+    all,
+    extractTriplets(src, CPP_ADD_EXPRESSION_RE),
+    "expression",
+    extension,
+    "dynamic-cpp",
+  );
+  pushAll(
+    all,
+    extractTriplets(src, CPP_ADD_STR_EXPRESSION_RE),
+    "strExpression",
+    extension,
+    "dynamic-cpp",
+  );
+  // AddExpressionAndCondition: register as both kinds
+  for (const m of src.matchAll(CPP_ADD_EXPR_AND_COND_RE)) {
+    const name = m[2] || m[1];
+    const desc = m[3] || "";
+    all.push({
+      type: name,
+      fullName: name,
+      description: desc,
+      kind: "expression",
+      extension,
+      source: "dynamic-cpp",
+    });
+    all.push({
+      type: name,
+      fullName: name,
+      description: desc,
+      kind: "condition",
+      extension,
+      source: "dynamic-cpp",
+    });
+  }
+  pushAll(
+    all,
+    extractTriplets(src, CPP_ADD_SCOPED_BEHAVIOR_RE),
+    "action",
+    extension,
+    "dynamic-cpp",
+  );
+}
+
+function walkCppExtensionFiles(extDir: string): string[] {
+  // Look for Extension.cpp + AllBuiltin*.cpp + <Name>Extension.cpp variants
+  try {
+    return readdirSync(extDir)
+      .filter((f) => /\.cpp$/.test(f))
+      .map((f) => join(extDir, f));
+  } catch {
+    return [];
+  }
+}
 
 export function buildInstructionCatalog(
   install: GDevelopInstall,
@@ -253,6 +411,7 @@ export function buildInstructionCatalog(
   if (cached) return cached;
   const all: InstructionSpec[] = [...STATIC_INSTRUCTIONS];
 
+  // 1. Extensions/<Name>/JsExtension.js and Extensions/<Name>/Extension.cpp
   let extensionDirs: string[];
   try {
     extensionDirs = readdirSync(install.extensionsPath, { withFileTypes: true })
@@ -264,49 +423,41 @@ export function buildInstructionCatalog(
   }
 
   for (const ext of extensionDirs) {
-    const jsExtensionPath = join(install.extensionsPath, ext, "JsExtension.js");
-    if (!existsSync(jsExtensionPath)) continue;
-    const src = readSafe(jsExtensionPath);
-    if (!src) continue;
-    for (const name of extractMatches(src, ADD_ACTION_RE)) {
-      all.push({
-        type: name,
-        fullName: name,
-        description: "(parsed from JsExtension.js)",
-        kind: "action",
-        extension: ext,
-        source: "dynamic",
-      });
+    const extDir = join(install.extensionsPath, ext);
+    // JS extensions
+    const jsExtensionPath = join(extDir, "JsExtension.js");
+    if (existsSync(jsExtensionPath)) {
+      const src = readSafe(jsExtensionPath);
+      if (src) parseJsExtension(all, ext, src);
     }
-    for (const name of extractMatches(src, ADD_CONDITION_RE)) {
-      all.push({
-        type: name,
-        fullName: name,
-        description: "(parsed from JsExtension.js)",
-        kind: "condition",
-        extension: ext,
-        source: "dynamic",
-      });
+    // C++ extensions (Extension.cpp + sibling .cpp files in same dir)
+    for (const cppPath of walkCppExtensionFiles(extDir)) {
+      const src = readSafe(cppPath);
+      if (src) parseCppExtension(all, ext, src);
     }
-    for (const name of extractMatches(src, ADD_EXPRESSION_RE)) {
-      all.push({
-        type: name,
-        fullName: name,
-        description: "(parsed from JsExtension.js)",
-        kind: "expression",
-        extension: ext,
-        source: "dynamic",
-      });
-    }
-    for (const name of extractMatches(src, ADD_STR_EXPRESSION_RE)) {
-      all.push({
-        type: name,
-        fullName: name,
-        description: "(parsed from JsExtension.js)",
-        kind: "strExpression",
-        extension: ext,
-        source: "dynamic",
-      });
+  }
+
+  // 2. Core/GDCore/Extensions/Builtin/*.cpp — built-in C++ extensions
+  const coreBuiltinPath = join(
+    install.resourcesPath,
+    "Core",
+    "GDCore",
+    "Extensions",
+    "Builtin",
+  );
+  if (existsSync(coreBuiltinPath)) {
+    try {
+      const files = readdirSync(coreBuiltinPath).filter((f) =>
+        /Extension\.cpp$/.test(f),
+      );
+      for (const f of files) {
+        const src = readSafe(join(coreBuiltinPath, f));
+        if (!src) continue;
+        const extName = f.replace(/Extension\.cpp$/, "");
+        parseCppExtension(all, `Builtin${extName}`, src);
+      }
+    } catch {
+      // ignore
     }
   }
 
