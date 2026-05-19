@@ -1,9 +1,20 @@
 import { existsSync, statSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { platform, homedir } from "node:os";
-import { createRequire } from "node:module";
+import { fileURLToPath } from "node:url";
+import { getCachedRuntimeSources } from "./runtime-types-cache.js";
 
-const require_ = createRequire(import.meta.url);
+function findNodeModulePackageRoot(name: string): string | null {
+  let dir = dirname(fileURLToPath(import.meta.url));
+  for (let i = 0; i < 10; i++) {
+    const candidate = join(dir, "node_modules", name);
+    if (existsSync(join(candidate, "package.json"))) return candidate;
+    const parent = dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+  return null;
+}
 
 export type GDevelopInstall = {
   source: "local" | "bundled";
@@ -75,20 +86,28 @@ function isValidLocalInstall(appPath: string): GDevelopInstall | null {
  */
 function findBundledRuntime(): GDevelopInstall | null {
   try {
-    const gdcoreToolsPkgPath = require_.resolve("gdcore-tools/package.json");
-    const gdcoreToolsRoot = dirname(gdcoreToolsPkgPath);
+    const gdcoreToolsRoot = findNodeModulePackageRoot("gdcore-tools");
+    if (!gdcoreToolsRoot) return null;
     const distRuntime = join(gdcoreToolsRoot, "dist", "Runtime");
     if (!existsSync(distRuntime)) return null;
-    const extensionsPath = join(distRuntime, "Extensions");
-    if (!existsSync(extensionsPath) || !statSync(extensionsPath).isDirectory())
+    const compiledExtensionsPath = join(distRuntime, "Extensions");
+    if (
+      !existsSync(compiledExtensionsPath) ||
+      !statSync(compiledExtensionsPath).isDirectory()
+    )
       return null;
+    // Prefer the on-disk cache of TypeScript sources populated by
+    // sync_runtime_types — restores per-object content-field typing.
+    const cachedSources = getCachedRuntimeSources();
     return {
       source: "bundled",
       appPath: null,
       resourcesPath: dirname(distRuntime),
       gdjsRuntimePath: distRuntime,
-      gdjsRuntimeSourcesPath: null,
-      extensionsPath,
+      gdjsRuntimeSourcesPath: cachedSources,
+      extensionsPath: cachedSources
+        ? join(cachedSources, "Extensions")
+        : compiledExtensionsPath,
     };
   } catch {
     return null;

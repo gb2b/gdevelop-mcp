@@ -3,6 +3,36 @@
 All notable changes to this project are documented here. Versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.13.0] — 2026-05-19
+
+### Added
+
+- **`sync_runtime_types` tool**: downloads the GDevelop `.ts` runtime sources
+  and `JsExtension.js` files directly from the official `4ian/GDevelop`
+  GitHub repository at the matching version tag (auto-detected from
+  gdcore-tools). Caches to `~/.cache/gdevelop-mcp/gdjs-types-<ref>/`.
+  In bundled mode (no local desktop install), this cache becomes the
+  source for the extensions scanner and dynamic catalog parser —
+  restoring full per-object type extraction (e.g. `text: string`,
+  `bold: boolean` for `TextObject::Text`).
+- Auto-detection priority: local desktop > GitHub cache (when bundled) >
+  raw gdcore-tools compiled JS (degraded fallback).
+
+### Changed
+
+- `findGDevelopInstall` now resolves `gdcore-tools` via filesystem walk
+  (works regardless of the package's exports map).
+- `gdevelop_install_info` exposes `bundledGdRef`, `cachedTypeSourcesPath`,
+  `typeSourcesPath` for clarity.
+
+### Rationale
+
+`gdcore-tools` is a side-project of a core GDevelop contributor; not
+official infrastructure. By sourcing the parseable assets (`.ts`,
+`JsExtension.js`) directly from `4ian/GDevelop`, we get the canonical,
+versioned, up-to-date types — and we only rely on gdcore-tools indirectly
+(via gdexporter, for the WASM runtime needed by `preview_scene`).
+
 ## [0.12.0] — 2026-05-19
 
 ### Added

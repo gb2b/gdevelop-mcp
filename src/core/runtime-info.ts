@@ -1,9 +1,7 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { createRequire } from "node:module";
+import { fileURLToPath } from "node:url";
 import type { GDevelopInstall } from "./install.js";
-
-const require_ = createRequire(import.meta.url);
 
 export type RuntimeInfo = {
   source: "local" | "bundled";
@@ -18,11 +16,25 @@ export type RuntimeInfo = {
 
 function readBundledPackageVersion(): string | null {
   try {
-    const pkgPath = require_.resolve("gdcore-tools/package.json");
-    const pkg = JSON.parse(readFileSync(pkgPath, "utf-8")) as {
-      version?: string;
-    };
-    return pkg.version ?? null;
+    let dir = dirname(fileURLToPath(import.meta.url));
+    for (let i = 0; i < 10; i++) {
+      const candidate = join(
+        dir,
+        "node_modules",
+        "gdcore-tools",
+        "package.json",
+      );
+      if (existsSync(candidate)) {
+        const pkg = JSON.parse(readFileSync(candidate, "utf-8")) as {
+          version?: string;
+        };
+        return pkg.version ?? null;
+      }
+      const parent = dirname(dir);
+      if (parent === dir) break;
+      dir = parent;
+    }
+    return null;
   } catch {
     return null;
   }

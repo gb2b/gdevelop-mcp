@@ -27,6 +27,11 @@ import {
 } from "./core/catalog-actions.js";
 import { summarizeEvents } from "./core/events.js";
 import { getRuntimeInfo, checkRuntimeFreshness } from "./core/runtime-info.js";
+import {
+  syncRuntimeTypes,
+  getCachedRuntimeSources,
+  getBundledGdRef,
+} from "./core/runtime-types-cache.js";
 import { fetchGitHubPath } from "./core/github.js";
 import {
   getAssetPacks,
@@ -44,7 +49,7 @@ import {
 
 const server = new McpServer({
   name: "gdevelop-mcp",
-  version: "0.12.0",
+  version: "0.13.0",
 });
 
 function textResult(value: unknown) {
@@ -69,12 +74,16 @@ server.tool(
       const install = findGDevelopInstall();
       const extensions = listExtensions(install);
       const runtime = getRuntimeInfo(install);
+      const cachedSources = getCachedRuntimeSources();
       return textResult({
         source: install.source,
         appPath: install.appPath,
         extensionsPath: install.extensionsPath,
         extensionsCount: extensions.length,
         hasTypeScriptSources: install.gdjsRuntimeSourcesPath !== null,
+        typeSourcesPath: install.gdjsRuntimeSourcesPath,
+        bundledGdRef: getBundledGdRef(),
+        cachedTypeSourcesPath: cachedSources,
         runtime,
       });
     } catch (err) {
@@ -91,6 +100,38 @@ server.tool(
     try {
       const report = await checkRuntimeFreshness();
       return textResult(report);
+    } catch (err) {
+      return errorResult((err as Error).message);
+    }
+  },
+);
+
+server.tool(
+  "sync_runtime_types",
+  `Download GDevelop's TypeScript runtime sources matching the bundled gdcore-tools version into a local cache (~/.cache/gdevelop-mcp/gdjs-types-<ref>/). Required only in bundled mode to enable detailed per-object content-field typing in describe_object_schema and list_dynamic_catalog. Idempotent — uses jsDelivr CDN with fallback to GitHub raw. Once cached, install detection picks it up automatically.`,
+  {
+    ref: z
+      .string()
+      .optional()
+      .describe(
+        "Git ref (tag/branch/SHA). Defaults to the gdcore-tools-derived version (e.g. 'v5.6.269').",
+      ),
+    force: z
+      .boolean()
+      .optional()
+      .describe("Re-download files even if already cached"),
+    concurrency: z
+      .number()
+      .int()
+      .positive()
+      .max(32)
+      .optional()
+      .describe("Number of parallel downloads (default 12)"),
+  },
+  async ({ ref, force, concurrency }) => {
+    try {
+      const result = await syncRuntimeTypes({ ref, force, concurrency });
+      return textResult(result);
     } catch (err) {
       return errorResult((err as Error).message);
     }
