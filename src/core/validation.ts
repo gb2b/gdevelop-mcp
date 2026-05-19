@@ -1,5 +1,5 @@
-import { ProjectSchema, type Project } from "./schema/project.js";
-import { OBJECT_TYPES, BEHAVIOR_TYPES } from "./catalog.js";
+import { ProjectSchema, type Project } from "./schema.js";
+import { OBJECT_TYPES, BEHAVIOR_TYPES } from "./catalog-static.js";
 
 export type ValidationIssue = {
   severity: "error" | "warning";

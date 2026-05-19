@@ -2,7 +2,7 @@ import { readFileSync, writeFileSync, renameSync, copyFileSync } from "node:fs";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { validateProjectData, type ValidationIssue } from "./validation.js";
-import { findObjectType } from "./catalog.js";
+import { findObjectType } from "./catalog-static.js";
 
 const AddLayoutOp = z.object({
   op: z.literal("add_layout"),

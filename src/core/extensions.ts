@@ -1,6 +1,6 @@
 import { readdirSync, existsSync, statSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import type { GDevelopInstall } from "./gdevelop-install.js";
+import type { GDevelopInstall } from "./install.js";
 
 export type ExtensionInfo = {
   name: string;

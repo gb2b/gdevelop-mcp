@@ -4,36 +4,36 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { readFileSync } from "node:fs";
 import { z } from "zod";
 
-import { findGDevelopInstall } from "./gdevelop-install.js";
-import { listExtensions, readExtensionFile } from "./extensions-scanner.js";
+import { findGDevelopInstall } from "./core/install.js";
+import { listExtensions, readExtensionFile } from "./core/extensions.js";
 import {
   OBJECT_TYPES,
   BEHAVIOR_TYPES,
   findObjectType,
-} from "./catalog.js";
-import { buildDynamicCatalog } from "./dynamic-catalog.js";
-import { validateProjectData } from "./validation.js";
-import { editProject, EditOpSchema } from "./edit.js";
-import { listBackups, restoreBackup } from "./backups.js";
-import { diffProjects } from "./diff.js";
-import { importAssetsIntoProject } from "./asset-import.js";
+} from "./core/catalog-static.js";
+import { buildDynamicCatalog } from "./core/catalog-dynamic.js";
+import { validateProjectData } from "./core/validation.js";
+import { editProject, EditOpSchema } from "./core/edit.js";
+import { listBackups, restoreBackup } from "./core/backups.js";
+import { diffProjects } from "./core/diff.js";
+import { importAssetsIntoProject } from "./core/asset-import.js";
 import { registerPrompts } from "./prompts.js";
-import { previewScene } from "./preview.js";
-import { renderSceneStatic } from "./scene-render.js";
-import { fetchGitHubPath } from "./github.js";
+import { previewScene } from "./core/preview-runtime.js";
+import { renderSceneStatic } from "./core/render-static.js";
+import { fetchGitHubPath } from "./core/github.js";
 import {
   getAssetPacks,
   getAssetShortHeaders,
   getAssetFilters,
   getAssetDetails,
   searchAssetsIn,
-} from "./asset-store.js";
+} from "./core/asset-store.js";
 import {
   getExampleHeaders,
   getExampleFilters,
   searchExamplesIn,
   findExampleBySlugOrId,
-} from "./examples.js";
+} from "./core/examples.js";
 
 const server = new McpServer({
   name: "gdevelop-mcp",
