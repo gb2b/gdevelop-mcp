@@ -3,6 +3,29 @@
 All notable changes to this project are documented here. Versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.12.0] — 2026-05-19
+
+### Added
+
+- **Cross-platform runtime fallback** via `gdcore-tools` (now a direct
+  dependency). If no local desktop GDevelop install is detected, the MCP
+  transparently uses the runtime bundled in `node_modules/gdcore-tools/dist/Runtime/`.
+  Works in CI, Docker, Linux AppImage, and any setup without a desktop
+  install. Force with `GDEVELOP_USE_BUNDLED=true`.
+- `check_runtime_freshness` tool — compares the locally bundled
+  gdcore-tools version against the npm registry.
+- `gdevelop_install_info` now reports `source` (local/bundled), runtime
+  version, and whether TypeScript sources are available (affects only
+  per-field type extraction in `list_dynamic_catalog`).
+
+### Changed
+
+- `GDevelopInstall` interface gains `source: "local" | "bundled"` and
+  `gdjsRuntimeSourcesPath: string | null` (null when bundled).
+- `catalog-dynamic` parser now also accepts compiled `.js` runtime files
+  (bundled mode). Content-fields extraction is skipped on `.js` but the
+  object/behavior name extraction remains.
+
 ## [0.11.0] — 2026-05-19
 
 ### Added

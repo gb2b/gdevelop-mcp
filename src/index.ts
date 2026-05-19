@@ -26,6 +26,7 @@ import {
   findInstructionByType,
 } from "./core/catalog-actions.js";
 import { summarizeEvents } from "./core/events.js";
+import { getRuntimeInfo, checkRuntimeFreshness } from "./core/runtime-info.js";
 import { fetchGitHubPath } from "./core/github.js";
 import {
   getAssetPacks,
@@ -43,7 +44,7 @@ import {
 
 const server = new McpServer({
   name: "gdevelop-mcp",
-  version: "0.11.0",
+  version: "0.12.0",
 });
 
 function textResult(value: unknown) {
@@ -61,17 +62,35 @@ function errorResult(message: string) {
 
 server.tool(
   "gdevelop_install_info",
-  "Returns metadata about the locally detected GDevelop installation (paths, extensions count). Set GDEVELOP_PATH env var to override auto-detection.",
+  "Returns metadata about the GDevelop runtime currently used: source ('local' = desktop install, 'bundled' = gdcore-tools npm fallback), paths, runtime version, and extensions count. Override detection with GDEVELOP_PATH or force bundled mode with GDEVELOP_USE_BUNDLED=true.",
   {},
   async () => {
     try {
       const install = findGDevelopInstall();
       const extensions = listExtensions(install);
+      const runtime = getRuntimeInfo(install);
       return textResult({
+        source: install.source,
         appPath: install.appPath,
         extensionsPath: install.extensionsPath,
         extensionsCount: extensions.length,
+        hasTypeScriptSources: install.gdjsRuntimeSourcesPath !== null,
+        runtime,
       });
+    } catch (err) {
+      return errorResult((err as Error).message);
+    }
+  },
+);
+
+server.tool(
+  "check_runtime_freshness",
+  "Check whether the bundled gdcore-tools runtime is up to date against the npm registry. Useful for the end user (the maintainer's Dependabot handles the repo itself).",
+  {},
+  async () => {
+    try {
+      const report = await checkRuntimeFreshness();
+      return textResult(report);
     } catch (err) {
       return errorResult((err as Error).message);
     }

@@ -1,6 +1,6 @@
 {
   "name": "gdevelop-mcp",
-  "version": "0.11.0",
+  "version": "0.12.0",
   "description": "MCP server for GDevelop project introspection and validation",
   "type": "module",
   "bin": {
@@ -28,6 +28,7 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.0",
     "@napi-rs/canvas": "^1.0.0",
+    "gdcore-tools": "^2.0.0-gd-v5.6.269-autobuild",
     "gdexporter": "^4.0.0-beta7",
     "puppeteer": "^25.0.4",
     "zod": "^4.4.3"

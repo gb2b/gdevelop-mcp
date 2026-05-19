@@ -111,15 +111,18 @@ function parseExtension(
       continue;
     }
 
-    if (/runtimeobject\.ts$/i.test(baseName)) {
-      const fields = extractContentFields(src);
+    if (/runtimeobject\.(ts|js)$/i.test(baseName)) {
+      // Type extraction only works on .ts (compiled .js loses the types).
+      const fields = /\.ts$/i.test(baseName)
+        ? extractContentFields(src)
+        : undefined;
       objects.push({
         typeName: `${extensionName}::<runtime-object>`,
         extension: extensionName,
         source: file,
         contentFields: fields,
       });
-    } else if (/runtimebehavior\.ts$/i.test(baseName)) {
+    } else if (/runtimebehavior\.(ts|js)$/i.test(baseName)) {
       behaviors.push({
         behaviorName: `${extensionName}::<runtime-behavior>`,
         extension: extensionName,
