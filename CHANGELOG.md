@@ -3,6 +3,47 @@
 All notable changes to this project are documented here. Versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.14.0] — 2026-05-20
+
+### Architecture pivot — GitHub as single source of truth
+
+The parsing pipeline now reads exclusively from a local cache mirrored from
+the canonical `4ian/GDevelop` GitHub repo. No more local-desktop fallback,
+no more gdcore-tools-bundled fallback for parsing. The cache covers the
+exhaustive parsing surface (Core C++ schemas, Core builtin extensions,
+all Extensions/, GDJS/Runtime/, TypeScript types), 841 files / ~14 MB at
+v5.6.269.
+
+`gdcore-tools` is now used ONLY transitively via `gdexporter` for
+`preview_scene` (runtime preview requires libGD.js WASM, no alternative).
+
+### Added
+
+- **`sync_gdevelop_sources`** tool: downloads the canonical source tree from
+  GitHub. Idempotent, parallel (default 12), ~14s for ~14 MB. Stores a
+  `manifest.json` with ref, sha, timestamps. Defaults to the latest
+  GitHub release tag.
+- **`check_cache_freshness`** tool: compares cached ref+sha against the
+  latest release on GitHub. Cheap, self-throttled (1h TTL).
+- **`search_gdevelop_code`** tool: grep-style regex search over the cache,
+  with optional path/extension filters and context lines. Use to discover
+  where features live before reading specific files. Concise output
+  (file + line + matching text + optional context).
+
+### Changed
+
+- `gdevelop_install_info` now reports cache status, manifest details, and
+  exposes the local desktop install only as informational data (not a
+  parsing source).
+- `findGDevelopInstall` resolves to the cache. Throws a clear error if
+  no cache exists — guides toward `sync_gdevelop_sources`.
+
+### Removed
+
+- `sync_runtime_types` tool (replaced by `sync_gdevelop_sources`).
+- `src/core/runtime-types-cache.ts` (replaced by `src/core/cache.ts`).
+- Bundled gdcore-tools fallback path for parsing.
+
 ## [0.13.0] — 2026-05-19
 
 ### Added

@@ -1,34 +1,28 @@
 import { existsSync, statSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { platform, homedir } from "node:os";
-import { fileURLToPath } from "node:url";
-import { getCachedRuntimeSources } from "./runtime-types-cache.js";
+import { ensureCacheReady } from "./cache.js";
 
-function findNodeModulePackageRoot(name: string): string | null {
-  let dir = dirname(fileURLToPath(import.meta.url));
-  for (let i = 0; i < 10; i++) {
-    const candidate = join(dir, "node_modules", name);
-    if (existsSync(join(candidate, "package.json"))) return candidate;
-    const parent = dirname(dir);
-    if (parent === dir) break;
-    dir = parent;
-  }
-  return null;
-}
-
+/**
+ * Runtime sources used by parsing/catalog/validation. Always rooted in
+ * the GitHub-synced cache (canonical 4ian/GDevelop repo). The local
+ * desktop install is NOT a primary source — `inspectLocalDesktopInstall`
+ * exposes it separately for informational purposes.
+ */
 export type GDevelopInstall = {
-  source: "local" | "bundled";
-  appPath: string | null;
+  source: "github-cache";
   resourcesPath: string;
-  gdjsRuntimePath: string;
-  /**
-   * Path to TypeScript runtime sources, or null when only compiled JS
-   * is available (bundled fallback). When null, dynamic catalog parsing
-   * of `*DataType` content fields is skipped, but `JsExtension.js`
-   * scanning still works.
-   */
-  gdjsRuntimeSourcesPath: string | null;
+  gdjsRuntimeSourcesPath: string;
   extensionsPath: string;
+};
+
+export type LocalDesktopInstallInfo = {
+  found: boolean;
+  appPath: string | null;
+  resourcesPath: string | null;
+  gdjsRuntimeSourcesPath: string | null;
+  extensionsPath: string | null;
+  hasTypeScriptSources: boolean;
 };
 
 const MACOS_CANDIDATES = [
@@ -40,7 +34,6 @@ const LINUX_CANDIDATES = [
   "/opt/GDevelop 5",
   "/usr/lib/gdevelop",
   join(homedir(), ".local/share/applications/gdevelop"),
-  // AppImage extracted manually
   join(homedir(), "Applications/GDevelop 5"),
 ];
 
@@ -52,100 +45,80 @@ const WINDOWS_CANDIDATES = [
 
 function resourcesDirFor(appPath: string): string {
   if (platform() === "darwin") return join(appPath, "Contents/Resources");
-  if (platform() === "win32") return join(appPath, "resources");
   return join(appPath, "resources");
 }
 
-function isValidLocalInstall(appPath: string): GDevelopInstall | null {
-  if (!existsSync(appPath)) return null;
+function probeLocalInstall(appPath: string): LocalDesktopInstallInfo {
+  if (!existsSync(appPath)) {
+    return {
+      found: false,
+      appPath: null,
+      resourcesPath: null,
+      gdjsRuntimeSourcesPath: null,
+      extensionsPath: null,
+      hasTypeScriptSources: false,
+    };
+  }
   const resourcesPath = resourcesDirFor(appPath);
-  const gdjsRuntimePath = join(resourcesPath, "GDJS/Runtime");
   const gdjsRuntimeSourcesPath = join(resourcesPath, "GDJS/Runtime-sources");
   const extensionsPath = join(gdjsRuntimeSourcesPath, "Extensions");
-
-  if (!existsSync(extensionsPath)) return null;
-  if (!statSync(extensionsPath).isDirectory()) return null;
-
+  const hasTypeScriptSources =
+    existsSync(extensionsPath) && statSync(extensionsPath).isDirectory();
   return {
-    source: "local",
+    found: hasTypeScriptSources,
     appPath,
     resourcesPath,
-    gdjsRuntimePath,
-    gdjsRuntimeSourcesPath,
+    gdjsRuntimeSourcesPath: hasTypeScriptSources
+      ? gdjsRuntimeSourcesPath
+      : null,
+    extensionsPath: hasTypeScriptSources ? extensionsPath : null,
+    hasTypeScriptSources,
+  };
+}
+
+export function inspectLocalDesktopInstall(): LocalDesktopInstallInfo {
+  const override = process.env.GDEVELOP_PATH;
+  if (override) return probeLocalInstall(override);
+  const candidates =
+    platform() === "darwin"
+      ? MACOS_CANDIDATES
+      : platform() === "win32"
+        ? WINDOWS_CANDIDATES
+        : LINUX_CANDIDATES;
+  for (const candidate of candidates) {
+    const info = probeLocalInstall(candidate);
+    if (info.found) return info;
+  }
+  return {
+    found: false,
+    appPath: null,
+    resourcesPath: null,
+    gdjsRuntimeSourcesPath: null,
+    extensionsPath: null,
+    hasTypeScriptSources: false,
+  };
+}
+
+export function findGDevelopInstall(): GDevelopInstall {
+  const cacheRoot = ensureCacheReady();
+  // The cache mirrors the GitHub repo structure. Extensions are at
+  // Extensions/<Name>/ relative to the cache root. The GDJS runtime
+  // sources are at GDJS/Runtime/.
+  const extensionsPath = join(cacheRoot, "Extensions");
+  const runtimeSourcesPath = join(cacheRoot, "GDJS", "Runtime");
+  if (!existsSync(extensionsPath)) {
+    throw new Error(
+      `Cache at ${cacheRoot} is missing the Extensions/ subdirectory — call sync_gdevelop_sources with force:true to repopulate.`,
+    );
+  }
+  return {
+    source: "github-cache",
+    resourcesPath: cacheRoot,
+    gdjsRuntimeSourcesPath: runtimeSourcesPath,
     extensionsPath,
   };
 }
 
-/**
- * Cross-platform fallback: use the runtime bundled inside the gdcore-tools
- * npm package (transitive dep of gdexporter). Works in CI / Docker / Linux
- * AppImage scenarios where a desktop install isn't available.
- *
- * Compiled .js — content-fields extraction (catalog-dynamic) is degraded,
- * but JsExtension.js parsing (catalog-actions) is fully functional.
- */
-function findBundledRuntime(): GDevelopInstall | null {
-  try {
-    const gdcoreToolsRoot = findNodeModulePackageRoot("gdcore-tools");
-    if (!gdcoreToolsRoot) return null;
-    const distRuntime = join(gdcoreToolsRoot, "dist", "Runtime");
-    if (!existsSync(distRuntime)) return null;
-    const compiledExtensionsPath = join(distRuntime, "Extensions");
-    if (
-      !existsSync(compiledExtensionsPath) ||
-      !statSync(compiledExtensionsPath).isDirectory()
-    )
-      return null;
-    // Prefer the on-disk cache of TypeScript sources populated by
-    // sync_runtime_types — restores per-object content-field typing.
-    const cachedSources = getCachedRuntimeSources();
-    return {
-      source: "bundled",
-      appPath: null,
-      resourcesPath: dirname(distRuntime),
-      gdjsRuntimePath: distRuntime,
-      gdjsRuntimeSourcesPath: cachedSources,
-      extensionsPath: cachedSources
-        ? join(cachedSources, "Extensions")
-        : compiledExtensionsPath,
-    };
-  } catch {
-    return null;
-  }
-}
-
-export function findGDevelopInstall(): GDevelopInstall {
-  const override = process.env.GDEVELOP_PATH;
-  if (override) {
-    const install = isValidLocalInstall(override);
-    if (install) return install;
-    throw new Error(
-      `GDEVELOP_PATH is set to "${override}" but no valid GDevelop install was found there.`,
-    );
-  }
-
-  const forceBundled = process.env.GDEVELOP_USE_BUNDLED === "true";
-  if (!forceBundled) {
-    const candidates =
-      platform() === "darwin"
-        ? MACOS_CANDIDATES
-        : platform() === "win32"
-          ? WINDOWS_CANDIDATES
-          : LINUX_CANDIDATES;
-
-    for (const candidate of candidates) {
-      const install = isValidLocalInstall(candidate);
-      if (install) return install;
-    }
-  }
-
-  const bundled = findBundledRuntime();
-  if (bundled) return bundled;
-
-  throw new Error(
-    "Could not locate any GDevelop runtime. " +
-      "Tried local install candidates and the gdcore-tools bundled runtime. " +
-      "Either install GDevelop (https://gdevelop.io), set GDEVELOP_PATH to its directory, " +
-      "or ensure gdcore-tools is installed (it's a transitive dep of gdexporter).",
-  );
-}
+// Re-export for callers that want to know about a local desktop install
+// without triggering cache requirements.
+void dirname;

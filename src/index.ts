@@ -28,10 +28,11 @@ import {
 import { summarizeEvents } from "./core/events.js";
 import { getRuntimeInfo, checkRuntimeFreshness } from "./core/runtime-info.js";
 import {
-  syncRuntimeTypes,
-  getCachedRuntimeSources,
-  getBundledGdRef,
-} from "./core/runtime-types-cache.js";
+  syncGdevelopSources,
+  checkFreshness,
+  readManifest,
+} from "./core/cache.js";
+import { searchGdevelopCode } from "./core/search.js";
 import { fetchGitHubPath } from "./core/github.js";
 import {
   getAssetPacks,
@@ -49,7 +50,7 @@ import {
 
 const server = new McpServer({
   name: "gdevelop-mcp",
-  version: "0.13.0",
+  version: "0.14.0",
 });
 
 function textResult(value: unknown) {
@@ -67,25 +68,124 @@ function errorResult(message: string) {
 
 server.tool(
   "gdevelop_install_info",
-  "Returns metadata about the GDevelop runtime currently used: source ('local' = desktop install, 'bundled' = gdcore-tools npm fallback), paths, runtime version, and extensions count. Override detection with GDEVELOP_PATH or force bundled mode with GDEVELOP_USE_BUNDLED=true.",
+  "Returns the state of the GDevelop sources cache (the parsing pipeline's only source: GitHub 4ian/GDevelop, no fallback), plus optional info about a local desktop install (informational only, not used for parsing). If no cache, call sync_gdevelop_sources first.",
   {},
   async () => {
     try {
+      const manifest = readManifest();
+      const runtime = getRuntimeInfo();
+      if (!manifest) {
+        return textResult({
+          ready: false,
+          message:
+            "No cache yet. Call sync_gdevelop_sources to download the GDevelop source tree from 4ian/GDevelop.",
+          localDesktop: runtime.localDesktop,
+          gdcoreToolsVersion: runtime.gdcoreToolsVersion,
+        });
+      }
       const install = findGDevelopInstall();
-      const extensions = listExtensions(install);
-      const runtime = getRuntimeInfo(install);
-      const cachedSources = getCachedRuntimeSources();
       return textResult({
-        source: install.source,
-        appPath: install.appPath,
+        ready: true,
+        cache: manifest,
+        cachePath: install.resourcesPath,
         extensionsPath: install.extensionsPath,
-        extensionsCount: extensions.length,
-        hasTypeScriptSources: install.gdjsRuntimeSourcesPath !== null,
-        typeSourcesPath: install.gdjsRuntimeSourcesPath,
-        bundledGdRef: getBundledGdRef(),
-        cachedTypeSourcesPath: cachedSources,
-        runtime,
+        gdjsRuntimeSourcesPath: install.gdjsRuntimeSourcesPath,
+        localDesktop: runtime.localDesktop,
+        gdcoreToolsVersion: runtime.gdcoreToolsVersion,
       });
+    } catch (err) {
+      return errorResult((err as Error).message);
+    }
+  },
+);
+
+server.tool(
+  "sync_gdevelop_sources",
+  "Download (or refresh) the canonical GDevelop source tree from 4ian/GDevelop GitHub. Covers Core/, Extensions/, GDJS/Runtime/, types — the exhaustive surface needed by parsing tools. Stores raw files in ~/.cache/gdevelop-mcp/ref-<ref>/, plus a manifest.json with ref+sha+timestamp. Idempotent (skip already-downloaded files unless force:true). Pass `ref` to pin a specific tag/branch/SHA; otherwise uses the latest GDevelop release.",
+  {
+    ref: z
+      .string()
+      .optional()
+      .describe(
+        "GitHub ref (tag/branch/SHA). Defaults to the latest GDevelop release tag.",
+      ),
+    force: z
+      .boolean()
+      .optional()
+      .describe("Re-download all files (skip the existence check)."),
+    concurrency: z.number().int().positive().max(32).optional(),
+  },
+  async ({ ref, force, concurrency }) => {
+    try {
+      const result = await syncGdevelopSources({ ref, force, concurrency });
+      return textResult(result);
+    } catch (err) {
+      return errorResult((err as Error).message);
+    }
+  },
+);
+
+server.tool(
+  "search_gdevelop_code",
+  "Grep-style search across the local GDevelop sources cache. Pass a regex query and optional filters (path prefixes, extensions, context lines). Returns concise hits — file path, line number, matching text, optional context. Use to discover where features live before reading specific files.",
+  {
+    query: z.string().describe("Regex pattern to search for"),
+    flags: z
+      .string()
+      .optional()
+      .describe("Regex flags (default 'i' for case-insensitive)"),
+    pathPrefixes: z
+      .array(z.string())
+      .optional()
+      .describe(
+        "Restrict to files starting with these paths (e.g. ['Core/GDCore/', 'Extensions/Sprite/'])",
+      ),
+    extensions: z
+      .array(z.string())
+      .optional()
+      .describe(
+        "Restrict to files with these extensions (e.g. ['.cpp', '.ts'])",
+      ),
+    contextBefore: z.number().int().nonnegative().max(10).optional(),
+    contextAfter: z.number().int().nonnegative().max(10).optional(),
+    maxResults: z.number().int().positive().max(200).optional(),
+  },
+  async ({
+    query,
+    flags,
+    pathPrefixes,
+    extensions,
+    contextBefore,
+    contextAfter,
+    maxResults,
+  }) => {
+    try {
+      const result = searchGdevelopCode({
+        query,
+        flags,
+        pathPrefixes,
+        extensions,
+        contextBefore,
+        contextAfter,
+        maxResults,
+      });
+      return textResult(result);
+    } catch (err) {
+      return errorResult((err as Error).message);
+    }
+  },
+);
+
+server.tool(
+  "check_cache_freshness",
+  "Compare the local cache against the latest GDevelop release on GitHub. Cheap; result is itself cached for an hour. Returns whether a refresh would pull a newer ref/SHA.",
+  {
+    force: z.boolean().optional().describe("Bypass the 1h freshness-check TTL"),
+  },
+  async ({ force }) => {
+    try {
+      const status = await checkFreshness({ force });
+      return textResult(status);
     } catch (err) {
       return errorResult((err as Error).message);
     }
@@ -100,38 +200,6 @@ server.tool(
     try {
       const report = await checkRuntimeFreshness();
       return textResult(report);
-    } catch (err) {
-      return errorResult((err as Error).message);
-    }
-  },
-);
-
-server.tool(
-  "sync_runtime_types",
-  `Download GDevelop's TypeScript runtime sources matching the bundled gdcore-tools version into a local cache (~/.cache/gdevelop-mcp/gdjs-types-<ref>/). Required only in bundled mode to enable detailed per-object content-field typing in describe_object_schema and list_dynamic_catalog. Idempotent — uses jsDelivr CDN with fallback to GitHub raw. Once cached, install detection picks it up automatically.`,
-  {
-    ref: z
-      .string()
-      .optional()
-      .describe(
-        "Git ref (tag/branch/SHA). Defaults to the gdcore-tools-derived version (e.g. 'v5.6.269').",
-      ),
-    force: z
-      .boolean()
-      .optional()
-      .describe("Re-download files even if already cached"),
-    concurrency: z
-      .number()
-      .int()
-      .positive()
-      .max(32)
-      .optional()
-      .describe("Number of parallel downloads (default 12)"),
-  },
-  async ({ ref, force, concurrency }) => {
-    try {
-      const result = await syncRuntimeTypes({ ref, force, concurrency });
-      return textResult(result);
     } catch (err) {
       return errorResult((err as Error).message);
     }

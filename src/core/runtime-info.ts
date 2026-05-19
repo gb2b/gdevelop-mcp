@@ -1,20 +1,24 @@
 import { readFileSync, existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import type { GDevelopInstall } from "./install.js";
+import {
+  inspectLocalDesktopInstall,
+  type LocalDesktopInstallInfo,
+} from "./install.js";
+import { readManifest, type CacheManifest } from "./cache.js";
 
 export type RuntimeInfo = {
-  source: "local" | "bundled";
-  appPath: string | null;
-  /** Version string of the runtime currently used. */
-  version: string | null;
-  /** For bundled: gdcore-tools npm package version. */
-  bundledPackageVersion: string | null;
-  /** For local: GDevelop version parsed from electron app/build info, when available. */
-  localAppVersion: string | null;
+  /** Parsing pipeline always uses the GitHub-synced cache. */
+  parsingSource: "github-cache";
+  /** The synced cache manifest, when present. */
+  cache: CacheManifest | null;
+  /** Info about the optional local desktop install (not used for parsing). */
+  localDesktop: LocalDesktopInstallInfo;
+  /** gdcore-tools npm package version (only used by preview_scene). */
+  gdcoreToolsVersion: string | null;
 };
 
-function readBundledPackageVersion(): string | null {
+function readGdcoreToolsVersion(): string | null {
   try {
     let dir = dirname(fileURLToPath(import.meta.url));
     for (let i = 0; i < 10; i++) {
@@ -40,30 +44,12 @@ function readBundledPackageVersion(): string | null {
   }
 }
 
-function readLocalAppVersion(install: GDevelopInstall): string | null {
-  if (!install.appPath) return null;
-  const candidates = [
-    join(install.resourcesPath, "app.asar"),
-    join(install.appPath, "Contents", "Info.plist"),
-    join(install.appPath, "package.json"),
-    join(install.resourcesPath, "app", "package.json"),
-  ];
-  void candidates;
-  // app.asar would need a parser. Info.plist is XML. Both require extra deps.
-  // For MVP, return null and let the user grep manually if needed.
-  return null;
-}
-
-export function getRuntimeInfo(install: GDevelopInstall): RuntimeInfo {
-  const bundledPackageVersion = readBundledPackageVersion();
-  const localAppVersion = readLocalAppVersion(install);
+export function getRuntimeInfo(): RuntimeInfo {
   return {
-    source: install.source,
-    appPath: install.appPath,
-    version:
-      install.source === "bundled" ? bundledPackageVersion : localAppVersion,
-    bundledPackageVersion,
-    localAppVersion,
+    parsingSource: "github-cache",
+    cache: readManifest(),
+    localDesktop: inspectLocalDesktopInstall(),
+    gdcoreToolsVersion: readGdcoreToolsVersion(),
   };
 }
 
@@ -76,17 +62,17 @@ export type FreshnessReport = {
 
 /**
  * Compares the locally installed gdcore-tools version against the latest
- * available on the npm registry. Best-effort: returns a `note` and `fresh:
- * null`-ish behavior if the network is unavailable.
+ * available on the npm registry. Best-effort. (gdcore-tools only powers
+ * preview_scene; the parsing pipeline uses GitHub sources directly.)
  */
 export async function checkRuntimeFreshness(): Promise<FreshnessReport> {
-  const current = readBundledPackageVersion();
+  const current = readGdcoreToolsVersion();
   if (!current) {
     return {
       current: null,
       latest: null,
       fresh: false,
-      note: "gdcore-tools is not installed locally.",
+      note: "gdcore-tools is not installed (only used transitively by gdexporter for preview_scene).",
     };
   }
   try {
@@ -109,8 +95,8 @@ export async function checkRuntimeFreshness(): Promise<FreshnessReport> {
       latest,
       fresh,
       note: fresh
-        ? "Bundled runtime is up to date with the npm registry."
-        : `A newer gdcore-tools is available (current: ${current}, latest: ${latest}). Run "npm update gdcore-tools" inside the gdevelop-mcp repo to upgrade.`,
+        ? "gdcore-tools (preview_scene runtime) is up to date with the npm registry."
+        : `A newer gdcore-tools is available (current: ${current}, latest: ${latest}). Only affects preview_scene.`,
     };
   } catch (err) {
     return {
@@ -121,5 +107,3 @@ export async function checkRuntimeFreshness(): Promise<FreshnessReport> {
     };
   }
 }
-
-void dirname;
