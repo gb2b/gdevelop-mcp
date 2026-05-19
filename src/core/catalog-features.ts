@@ -22,7 +22,7 @@ export type EventTypeInfo = {
 };
 
 const EVENT_CLASS_RE =
-  /class\s+GD_CORE_API\s+([A-Za-z0-9_]+)\s*:\s*(?:public|protected|private)?\s*BaseEvent/g;
+  /class\s+GD_CORE_API\s+([A-Za-z0-9_]+)\s*:\s*(?:public|protected|private)?\s*(?:gd::)?BaseEvent/g;
 
 export function listEventTypes(install: GDevelopInstall): EventTypeInfo[] {
   const dir = join(

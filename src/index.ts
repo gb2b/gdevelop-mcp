@@ -39,6 +39,8 @@ import {
   listVariableTypes,
 } from "./core/catalog-features.js";
 import { GDEVELOP_OVERVIEW } from "./core/overview.js";
+import { describeExtension } from "./core/extension-describe.js";
+import { fetchWikiPage } from "./core/wiki.js";
 import { fetchGitHubPath } from "./core/github.js";
 import {
   getAssetPacks,
@@ -56,7 +58,7 @@ import {
 
 const server = new McpServer({
   name: "gdevelop-mcp",
-  version: "0.15.0",
+  version: "0.16.0",
 });
 
 function textResult(value: unknown) {
@@ -218,6 +220,46 @@ server.tool(
   {},
   async () => {
     return textResult(GDEVELOP_OVERVIEW);
+  },
+);
+
+server.tool(
+  "describe_extension",
+  "Aggregate everything the cache knows about a given GDevelop extension: file list, paths to Extension.cpp / JsExtension.js / README, counts and full list of actions/conditions/expressions, runtime object/behavior file names, README excerpt. Use this BEFORE diving into individual files to get a single bird's-eye view of an extension.",
+  {
+    name: z
+      .string()
+      .describe(
+        "Extension folder name (e.g. 'PlatformBehavior', 'TextObject', 'Lighting').",
+      ),
+  },
+  async ({ name }) => {
+    try {
+      const install = findGDevelopInstall();
+      return textResult(describeExtension(install, name));
+    } catch (err) {
+      return errorResult((err as Error).message);
+    }
+  },
+);
+
+server.tool(
+  "describe_feature",
+  "Fetch a GDevelop wiki page (wiki.gdevelop.io) and return it as concise markdown. Use to read user-facing docs about features — typically more readable than the C++/TS source. Accepts a slug ('all-features', 'all-features/timers') or a full URL.",
+  {
+    page: z
+      .string()
+      .describe(
+        "Wiki slug (e.g. 'all-features') or full https URL. The MCP normalizes to /gdevelop5/<slug>/.",
+      ),
+  },
+  async ({ page }) => {
+    try {
+      const result = await fetchWikiPage(page);
+      return textResult(result);
+    } catch (err) {
+      return errorResult((err as Error).message);
+    }
   },
 );
 

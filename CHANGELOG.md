@@ -3,6 +3,29 @@
 All notable changes to this project are documented here. Versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.16.0] — 2026-05-20
+
+### Fixed
+
+- **`list_event_types`**: regex now matches `gd::BaseEvent` namespace.
+  Returns 10 built-in event types (Async, Comment, Else, ForEach,
+  ForEachChildVariable, Group, Link, Repeat, Standard, While) with the
+  `BuiltinCommonInstructions::<Name>` JSON type and whether each can
+  contain sub-events.
+
+### Added
+
+- **`describe_extension(name)`**: one-shot bird's-eye view of an
+  extension — paths (Extension.cpp / JsExtension.js / README), file
+  list, counts and full listings of actions/conditions/expressions/
+  string-expressions, runtime object/behavior file names, README
+  excerpt. Example: PlatformBehavior → 28 actions, 21 conditions,
+  11 expressions, 2 runtime behaviors.
+- **`describe_feature(page)`**: fetches a GDevelop wiki page
+  (wiki.gdevelop.io) and returns its main-content area as markdown.
+  Follows meta-refresh redirects, strips nav/sidebar/footer, capped at
+  100KB.
+
 ## [0.15.0] — 2026-05-20
 
 ### Added
