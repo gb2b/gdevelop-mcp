@@ -3,6 +3,28 @@
 All notable changes to this project are documented here. Versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.11.0] — 2026-05-19
+
+### Added
+
+- **Events** (`add_event`, `remove_event`, `move_event`) as new ops of
+  `edit_project`. Full Zod schemas for the 7 built-in event types
+  (`Standard`, `Comment`, `Group`, `ForEach`, `Repeat`, `While`, `Link`,
+  `JsCode`). Sub-events nesting via `parentPath`; positional inserts
+  (`append`/`prepend`/index).
+- **Custom events functions extensions** (`add_extension`,
+  `add_events_based_object`, `add_events_based_behavior`,
+  `add_extension_function`, `add_extension_property`) as new ops of
+  `edit_project`. Enables creating reusable custom objects, custom
+  behaviors, and free functions with their own parameters and events.
+- **Instruction catalog** (`list_instructions`, `describe_instruction`).
+  Combines a hand-curated static catalog of ~25 common built-ins with
+  dynamic parsing of all `JsExtension.js` files in the local install.
+- **Scene events summary** (`summarize_events`): per-type counts and max
+  nesting depth without dumping the raw events JSON.
+- Tests: `test/events.test.ts`, `test/efe.test.ts`,
+  `test/catalog-actions.test.ts` (48 tests total, up from 35).
+
 ## [0.10.1] — 2026-05-19
 
 ### Changed

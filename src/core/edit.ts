@@ -3,6 +3,29 @@ import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { validateProjectData, type ValidationIssue } from "./validation.js";
 import { findObjectType } from "./catalog-static.js";
+import {
+  AddEventOpSchema,
+  RemoveEventOpSchema,
+  MoveEventOpSchema,
+  applyAddEvent,
+  applyRemoveEvent,
+  applyMoveEvent,
+  type AddEventOp,
+  type RemoveEventOp,
+  type MoveEventOp,
+} from "./events.js";
+import {
+  AddExtensionOpSchema,
+  AddEventsBasedObjectOpSchema,
+  AddEventsBasedBehaviorOpSchema,
+  AddExtensionFunctionOpSchema,
+  AddExtensionPropertyOpSchema,
+  applyAddExtension,
+  applyAddEventsBasedObject,
+  applyAddEventsBasedBehavior,
+  applyAddExtensionFunction,
+  applyAddExtensionProperty,
+} from "./efe.js";
 
 const AddLayoutOp = z.object({
   op: z.literal("add_layout"),
@@ -54,6 +77,14 @@ export const EditOpSchema = z.discriminatedUnion("op", [
   AddObjectOp,
   AddInstanceOp,
   AttachBehaviorOp,
+  AddEventOpSchema,
+  RemoveEventOpSchema,
+  MoveEventOpSchema,
+  AddExtensionOpSchema,
+  AddEventsBasedObjectOpSchema,
+  AddEventsBasedBehaviorOpSchema,
+  AddExtensionFunctionOpSchema,
+  AddExtensionPropertyOpSchema,
 ]);
 export type EditOp = z.infer<typeof EditOpSchema>;
 
@@ -275,6 +306,24 @@ export type EditSummary = {
     y: number;
   }>;
   behaviorsAttached: Array<{ objectName: string; type: string; name: string }>;
+  eventsAdded: Array<{ scene: string; type: string }>;
+  eventsRemoved: number;
+  eventsMoved: number;
+  extensionsAdded: string[];
+  eventsBasedObjectsAdded: Array<{ extension: string; name: string }>;
+  eventsBasedBehaviorsAdded: Array<{ extension: string; name: string }>;
+  extensionFunctionsAdded: Array<{
+    extension: string;
+    parent: string;
+    parentName?: string;
+    name: string;
+  }>;
+  extensionPropertiesAdded: Array<{
+    extension: string;
+    parent: string;
+    parentName: string;
+    name: string;
+  }>;
 };
 
 export type EditResult = {
@@ -303,6 +352,14 @@ function emptySummary(): EditSummary {
     objectsAdded: [],
     instancesAdded: [],
     behaviorsAttached: [],
+    eventsAdded: [],
+    eventsRemoved: 0,
+    eventsMoved: 0,
+    extensionsAdded: [],
+    eventsBasedObjectsAdded: [],
+    eventsBasedBehaviorsAdded: [],
+    extensionFunctionsAdded: [],
+    extensionPropertiesAdded: [],
   };
 }
 
@@ -332,6 +389,49 @@ function recordOp(summary: EditSummary, op: EditOp): void {
         objectName: op.objectName,
         type: op.type,
         name: op.name ?? op.type.split("::").pop() ?? op.type,
+      });
+      break;
+    case "add_event":
+      summary.eventsAdded.push({
+        scene: op.scene,
+        type: (op.event as { type: string }).type,
+      });
+      break;
+    case "remove_event":
+      summary.eventsRemoved++;
+      break;
+    case "move_event":
+      summary.eventsMoved++;
+      break;
+    case "add_extension":
+      summary.extensionsAdded.push(op.name);
+      break;
+    case "add_events_based_object":
+      summary.eventsBasedObjectsAdded.push({
+        extension: op.extension,
+        name: op.name,
+      });
+      break;
+    case "add_events_based_behavior":
+      summary.eventsBasedBehaviorsAdded.push({
+        extension: op.extension,
+        name: op.name,
+      });
+      break;
+    case "add_extension_function":
+      summary.extensionFunctionsAdded.push({
+        extension: op.extension,
+        parent: op.parent ?? "extension",
+        parentName: op.parentName,
+        name: op.name,
+      });
+      break;
+    case "add_extension_property":
+      summary.extensionPropertiesAdded.push({
+        extension: op.extension,
+        parent: op.parent,
+        parentName: op.parentName,
+        name: op.property.name,
       });
       break;
   }
@@ -395,6 +495,62 @@ export async function editProject(
           break;
         case "attach_behavior":
           applyAttachBehavior(project, op);
+          break;
+        case "add_event":
+          applyAddEvent(
+            project as unknown as Parameters<typeof applyAddEvent>[0],
+            op as AddEventOp,
+          );
+          break;
+        case "remove_event":
+          applyRemoveEvent(
+            project as unknown as Parameters<typeof applyRemoveEvent>[0],
+            op as RemoveEventOp,
+          );
+          break;
+        case "move_event":
+          applyMoveEvent(
+            project as unknown as Parameters<typeof applyMoveEvent>[0],
+            op as MoveEventOp,
+          );
+          break;
+        case "add_extension":
+          applyAddExtension(
+            project as unknown as Parameters<typeof applyAddExtension>[0],
+            op,
+          );
+          break;
+        case "add_events_based_object":
+          applyAddEventsBasedObject(
+            project as unknown as Parameters<
+              typeof applyAddEventsBasedObject
+            >[0],
+            op,
+          );
+          break;
+        case "add_events_based_behavior":
+          applyAddEventsBasedBehavior(
+            project as unknown as Parameters<
+              typeof applyAddEventsBasedBehavior
+            >[0],
+            op,
+          );
+          break;
+        case "add_extension_function":
+          applyAddExtensionFunction(
+            project as unknown as Parameters<
+              typeof applyAddExtensionFunction
+            >[0],
+            op,
+          );
+          break;
+        case "add_extension_property":
+          applyAddExtensionProperty(
+            project as unknown as Parameters<
+              typeof applyAddExtensionProperty
+            >[0],
+            op,
+          );
           break;
       }
       recordOp(summary, op);

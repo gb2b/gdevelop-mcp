@@ -20,6 +20,12 @@ import { importAssetsIntoProject } from "./core/asset-import.js";
 import { registerPrompts } from "./prompts.js";
 import { previewScene } from "./core/preview-runtime.js";
 import { renderSceneStatic } from "./core/render-static.js";
+import {
+  buildInstructionCatalog,
+  findInstructions,
+  findInstructionByType,
+} from "./core/catalog-actions.js";
+import { summarizeEvents } from "./core/events.js";
 import { fetchGitHubPath } from "./core/github.js";
 import {
   getAssetPacks,
@@ -37,7 +43,7 @@ import {
 
 const server = new McpServer({
   name: "gdevelop-mcp",
-  version: "0.10.1",
+  version: "0.11.0",
 });
 
 function textResult(value: unknown) {
@@ -992,6 +998,108 @@ Limits: no animations beyond frame 0, no behaviors (positions are initial only),
         background,
       });
       return textResult(result);
+    } catch (err) {
+      return errorResult((err as Error).message);
+    }
+  },
+);
+
+server.tool(
+  "list_instructions",
+  `List GDevelop instructions (actions, conditions, expressions). Combines a hand-curated static catalog of common built-in ones with dynamic parsing of JsExtension.js files in your local install. Useful to discover the type.value to use in add_event ops.`,
+  {
+    kind: z
+      .enum(["action", "condition", "expression", "strExpression"])
+      .optional(),
+    extension: z
+      .string()
+      .optional()
+      .describe(
+        "Filter by extension name (e.g. 'PlatformBehavior', 'BuiltinKeyboard')",
+      ),
+    query: z
+      .string()
+      .optional()
+      .describe(
+        "Case-insensitive substring filter on type/fullName/description",
+      ),
+    limit: z.number().int().positive().max(500).optional(),
+  },
+  async ({ kind, extension, query, limit }) => {
+    try {
+      const install = findGDevelopInstall();
+      const catalog = buildInstructionCatalog(install);
+      const matches = findInstructions(catalog, {
+        kind,
+        extension,
+        query,
+        limit,
+      });
+      return textResult({
+        totalIndexed: catalog.length,
+        matched: matches.length,
+        instructions: matches,
+      });
+    } catch (err) {
+      return errorResult((err as Error).message);
+    }
+  },
+);
+
+server.tool(
+  "describe_instruction",
+  `Find every catalog entry matching an instruction type (e.g. 'SimulateJumpKey'). Returns extensions where this type is defined, kind (action/condition/expression), and source (static catalog vs parsed from JsExtension.js). For raw signature details, follow up with read_extension_source or read_github_source.`,
+  {
+    type: z
+      .string()
+      .describe("The instruction type, e.g. 'KeyPressed', 'SimulateJumpKey'"),
+  },
+  async ({ type }) => {
+    try {
+      const install = findGDevelopInstall();
+      const catalog = buildInstructionCatalog(install);
+      const matches = findInstructionByType(catalog, type);
+      return textResult({
+        type,
+        found: matches.length > 0,
+        matches,
+        hint:
+          matches.length === 0
+            ? "Not in catalog. Try list_instructions with a query, or read_extension_source / read_github_source to inspect the source."
+            : undefined,
+      });
+    } catch (err) {
+      return errorResult((err as Error).message);
+    }
+  },
+);
+
+server.tool(
+  "summarize_events",
+  `Summarize the events tree of a scene: total count, per-type breakdown, max nesting depth. Useful to inspect a scene's logic without dumping the full events JSON.`,
+  {
+    projectPath: z.string(),
+    scene: z
+      .string()
+      .optional()
+      .describe("Scene name. If omitted, uses firstLayout."),
+  },
+  async ({ projectPath, scene }) => {
+    try {
+      const raw = readFileSync(projectPath, "utf-8");
+      const project = JSON.parse(raw) as {
+        firstLayout: string;
+        layouts: Array<{ name: string; events: unknown[] }>;
+      };
+      const sceneName = scene ?? project.firstLayout;
+      const layout = project.layouts.find((l) => l.name === sceneName);
+      if (!layout) {
+        return errorResult(
+          `Scene "${sceneName}" not found. Available: ${project.layouts.map((l) => l.name).join(", ")}`,
+        );
+      }
+      const summary = summarizeEvents(layout.events ?? []);
+      return textResult({ scene: sceneName, ...summary });
     } catch (err) {
       return errorResult((err as Error).message);
     }
