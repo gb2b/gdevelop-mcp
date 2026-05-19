@@ -54,8 +54,12 @@ function walkTsFiles(dir: string, depth = 0, max = 2): string[] {
   return out;
 }
 
-function extractContentFields(source: string): Record<string, string> | undefined {
-  const match = source.match(/content\s*:\s*\{([^}]*(?:\{[^}]*\}[^}]*)*)\}\s*;?/);
+function extractContentFields(
+  source: string,
+): Record<string, string> | undefined {
+  const match = source.match(
+    /content\s*:\s*\{([^}]*(?:\{[^}]*\}[^}]*)*)\}\s*;?/,
+  );
   if (!match) return undefined;
   const body = match[1];
   const fields: Record<string, string> = {};

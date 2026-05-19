@@ -31,9 +31,7 @@ describe("static catalog", () => {
   });
 
   it("findBehaviorType resolves Platformer", () => {
-    const info = findBehaviorType(
-      "PlatformBehavior::PlatformerObjectBehavior",
-    );
+    const info = findBehaviorType("PlatformBehavior::PlatformerObjectBehavior");
     expect(info).toBeDefined();
     expect(info?.extension).toBe("PlatformBehavior");
   });

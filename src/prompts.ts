@@ -8,7 +8,9 @@ export function registerPrompts(server: McpServer): void {
     {
       exampleSlug: z
         .string()
-        .describe("Example slug, e.g. 'platformer', '3d-car-coin-hunt', 'top-down-rpg'"),
+        .describe(
+          "Example slug, e.g. 'platformer', '3d-car-coin-hunt', 'top-down-rpg'",
+        ),
       projectPath: z
         .string()
         .describe("Absolute path to the target GDevelop .json project file"),
@@ -42,7 +44,9 @@ export function registerPrompts(server: McpServer): void {
     "add-hero",
     "Find a free CC0 hero/player sprite and wire it up with the right movement behavior.",
     {
-      projectPath: z.string().describe("Absolute path to the GDevelop project file"),
+      projectPath: z
+        .string()
+        .describe("Absolute path to the GDevelop project file"),
       genre: z
         .enum(["platformer", "topdown"])
         .describe("Game genre — drives the behavior choice"),
@@ -85,7 +89,9 @@ export function registerPrompts(server: McpServer): void {
     "debug-project",
     "Diagnose problems with a GDevelop project that won't open or behaves unexpectedly.",
     {
-      projectPath: z.string().describe("Absolute path to the GDevelop project file"),
+      projectPath: z
+        .string()
+        .describe("Absolute path to the GDevelop project file"),
     },
     ({ projectPath }) => ({
       messages: [
@@ -115,12 +121,18 @@ export function registerPrompts(server: McpServer): void {
     "browse-store",
     "Search the GDevelop asset store for a theme/style and import matching CC0 assets into a project.",
     {
-      projectPath: z.string().describe("Absolute path to the GDevelop project file"),
-      theme: z.string().describe("Theme or style keywords (e.g. 'forest', 'space shooter')"),
+      projectPath: z
+        .string()
+        .describe("Absolute path to the GDevelop project file"),
+      theme: z
+        .string()
+        .describe("Theme or style keywords (e.g. 'forest', 'space shooter')"),
       scene: z
         .string()
         .optional()
-        .describe("If provided, suggest placement and offer to insert instances"),
+        .describe(
+          "If provided, suggest placement and offer to insert instances",
+        ),
     },
     ({ projectPath, theme, scene }) => ({
       messages: [
@@ -155,8 +167,12 @@ export function registerPrompts(server: McpServer): void {
     "safe-edit-flow",
     "Reminds the assistant of the safe edit flow (inspect → dryRun → apply → verify).",
     {
-      projectPath: z.string().describe("Absolute path to the GDevelop project file"),
-      intent: z.string().describe("What you want to change in natural language"),
+      projectPath: z
+        .string()
+        .describe("Absolute path to the GDevelop project file"),
+      intent: z
+        .string()
+        .describe("What you want to change in natural language"),
     },
     ({ projectPath, intent }) => ({
       messages: [

@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: GDevelop community forum
+    url: https://forum.gdevelop.io/
+    about: For general GDevelop questions unrelated to this MCP server.
+  - name: MCP protocol spec
+    url: https://modelcontextprotocol.io/
+    about: Questions about the Model Context Protocol itself.

@@ -1,4 +1,9 @@
-import { createCanvas, loadImage, type SKRSContext2D, type Canvas } from "@napi-rs/canvas";
+import {
+  createCanvas,
+  loadImage,
+  type SKRSContext2D,
+  type Canvas,
+} from "@napi-rs/canvas";
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { dirname, join, resolve, isAbsolute } from "node:path";
 import { tmpdir } from "node:os";
@@ -97,7 +102,10 @@ function parseColor(c: GDColor | undefined, fallback = "#000"): string {
   return fallback;
 }
 
-function buildResourceMap(project: Project, projectDir: string): Map<string, string> {
+function buildResourceMap(
+  project: Project,
+  projectDir: string,
+): Map<string, string> {
   const map = new Map<string, string>();
   for (const r of project.resources.resources) {
     if (!r.name || !r.file) continue;
@@ -107,7 +115,10 @@ function buildResourceMap(project: Project, projectDir: string): Map<string, str
   return map;
 }
 
-function buildObjectMap(project: Project, sceneName: string): Map<string, GDObject> {
+function buildObjectMap(
+  project: Project,
+  sceneName: string,
+): Map<string, GDObject> {
   const map = new Map<string, GDObject>();
   for (const o of project.objects) map.set(o.name, o);
   const layout = project.layouts.find((l) => l.name === sceneName);
@@ -153,7 +164,9 @@ async function renderSprite(
     ctx.restore();
   } catch (err) {
     drawPlaceholder(ctx, inst, obj, `load error`);
-    stats.notes.push(`${obj.name}: failed to load ${frame.image} — ${(err as Error).message}`);
+    stats.notes.push(
+      `${obj.name}: failed to load ${frame.image} — ${(err as Error).message}`,
+    );
   }
 }
 
@@ -185,7 +198,11 @@ async function renderCube3D(
   void stats;
 }
 
-function renderModel3D(ctx: SKRSContext2D, inst: Instance, obj: GDObject): void {
+function renderModel3D(
+  ctx: SKRSContext2D,
+  inst: Instance,
+  obj: GDObject,
+): void {
   const w = inst.customSize && inst.width ? inst.width : 100;
   const h = inst.customSize && inst.height ? inst.height : 100;
   ctx.save();
@@ -220,9 +237,8 @@ async function renderTiledSprite(
   resources: Map<string, string>,
   stats: RenderStats,
 ): Promise<void> {
-  const texture = ((obj.content as { texture?: string } | undefined)?.texture ?? obj.texture) as
-    | string
-    | undefined;
+  const texture = ((obj.content as { texture?: string } | undefined)?.texture ??
+    obj.texture) as string | undefined;
   if (!texture) {
     drawPlaceholder(ctx, inst, obj, "no texture");
     return;
@@ -250,7 +266,9 @@ async function renderTiledSprite(
     ctx.restore();
   } catch (err) {
     drawPlaceholder(ctx, inst, obj, "load error");
-    stats.notes.push(`${obj.name}: tiled sprite load error — ${(err as Error).message}`);
+    stats.notes.push(
+      `${obj.name}: tiled sprite load error — ${(err as Error).message}`,
+    );
   }
 }
 
@@ -305,8 +323,12 @@ function drawLabel(ctx: SKRSContext2D, inst: Instance): void {
   ctx.restore();
 }
 
-export async function renderSceneStatic(opts: RenderOptions): Promise<RenderStats> {
-  const project = JSON.parse(readFileSync(opts.projectPath, "utf-8")) as Project;
+export async function renderSceneStatic(
+  opts: RenderOptions,
+): Promise<RenderStats> {
+  const project = JSON.parse(
+    readFileSync(opts.projectPath, "utf-8"),
+  ) as Project;
   const sceneName = opts.sceneName ?? project.firstLayout;
   const layout = project.layouts.find((l) => l.name === sceneName);
   if (!layout) {
@@ -375,7 +397,9 @@ export async function renderSceneStatic(opts: RenderOptions): Promise<RenderStat
           break;
         default:
           drawPlaceholder(ctx, inst, obj, "unsupported type");
-          stats.notes.push(`${obj.name}: type "${obj.type}" rendered as placeholder`);
+          stats.notes.push(
+            `${obj.name}: type "${obj.type}" rendered as placeholder`,
+          );
       }
       stats.instancesRendered++;
 
@@ -384,12 +408,18 @@ export async function renderSceneStatic(opts: RenderOptions): Promise<RenderStat
       }
     } catch (err) {
       stats.instancesSkipped++;
-      stats.notes.push(`${inst.name}: render error — ${(err as Error).message}`);
+      stats.notes.push(
+        `${inst.name}: render error — ${(err as Error).message}`,
+      );
     }
   }
 
   const outputPath =
-    opts.outputPath ?? join(tmpdir(), `gdevelop-scene-${sceneName.replace(/[^a-zA-Z0-9_-]/g, "_")}-${Date.now()}.png`);
+    opts.outputPath ??
+    join(
+      tmpdir(),
+      `gdevelop-scene-${sceneName.replace(/[^a-zA-Z0-9_-]/g, "_")}-${Date.now()}.png`,
+    );
   const buffer = await canvas.encode("png");
   writeFileSync(outputPath, buffer);
 

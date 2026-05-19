@@ -6,7 +6,11 @@ type RawProject = {
   firstLayout: string;
   layouts: Array<{
     name: string;
-    objects: Array<{ name: string; type: string; behaviors?: Array<{ name: string; type: string }> }>;
+    objects: Array<{
+      name: string;
+      type: string;
+      behaviors?: Array<{ name: string; type: string }>;
+    }>;
     instances: unknown[];
     events: unknown[];
   }>;
@@ -57,7 +61,8 @@ function compareObjects(
   const addedBeh = aBeh.filter((n) => !bBeh.includes(n));
   const removedBeh = bBeh.filter((n) => !aBeh.includes(n));
   if (addedBeh.length) changes.push(`behaviors added: ${addedBeh.join(", ")}`);
-  if (removedBeh.length) changes.push(`behaviors removed: ${removedBeh.join(", ")}`);
+  if (removedBeh.length)
+    changes.push(`behaviors removed: ${removedBeh.join(", ")}`);
   if (changes.length === 0) return null;
   return {
     name: before.name,
@@ -74,8 +79,12 @@ function compareLayout(
   const beforeObjMap = new Map(before.objects.map((o) => [o.name, o]));
   const afterObjMap = new Map(after.objects.map((o) => [o.name, o]));
 
-  const objectsAdded = [...afterObjMap.keys()].filter((n) => !beforeObjMap.has(n));
-  const objectsRemoved = [...beforeObjMap.keys()].filter((n) => !afterObjMap.has(n));
+  const objectsAdded = [...afterObjMap.keys()].filter(
+    (n) => !beforeObjMap.has(n),
+  );
+  const objectsRemoved = [...beforeObjMap.keys()].filter(
+    (n) => !afterObjMap.has(n),
+  );
   const objectsModified: ObjectDiff[] = [];
 
   for (const [name, bObj] of beforeObjMap) {
@@ -112,7 +121,9 @@ export function diffProjects(pathA: string, pathB: string): ProjectDiff {
 
   const topLevelChanges: string[] = [];
   if (before.properties.name !== after.properties.name) {
-    topLevelChanges.push(`name: ${before.properties.name} → ${after.properties.name}`);
+    topLevelChanges.push(
+      `name: ${before.properties.name} → ${after.properties.name}`,
+    );
   }
   if (before.properties.version !== after.properties.version) {
     topLevelChanges.push(
@@ -145,7 +156,9 @@ export function diffProjects(pathA: string, pathB: string): ProjectDiff {
 
   const beforeGlobal = new Map(before.objects.map((o) => [o.name, o.type]));
   const afterGlobal = new Map(after.objects.map((o) => [o.name, o.type]));
-  const globalObjectsAdded = [...afterGlobal.keys()].filter((n) => !beforeGlobal.has(n));
+  const globalObjectsAdded = [...afterGlobal.keys()].filter(
+    (n) => !beforeGlobal.has(n),
+  );
   const globalObjectsRemoved = [...beforeGlobal.keys()].filter(
     (n) => !afterGlobal.has(n),
   );

@@ -1,4 +1,10 @@
-import { readdirSync, statSync, copyFileSync, renameSync, writeFileSync } from "node:fs";
+import {
+  readdirSync,
+  statSync,
+  copyFileSync,
+  renameSync,
+  writeFileSync,
+} from "node:fs";
 import { dirname, basename, join } from "node:path";
 import { randomUUID } from "node:crypto";
 
@@ -45,7 +51,10 @@ export function listBackups(projectPath: string): BackupEntry[] {
   return backups.sort((a, b) => b.fileName.localeCompare(a.fileName));
 }
 
-export function restoreBackup(projectPath: string, backupPath?: string): {
+export function restoreBackup(
+  projectPath: string,
+  backupPath?: string,
+): {
   restored: string;
   rolledOverTo: string;
 } {

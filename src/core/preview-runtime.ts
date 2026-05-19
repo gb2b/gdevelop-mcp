@@ -9,11 +9,17 @@ import {
 } from "node:fs";
 import { join, dirname, extname } from "node:path";
 import { tmpdir } from "node:os";
-import { createServer, type Server, type IncomingMessage, type ServerResponse } from "node:http";
+import {
+  createServer,
+  type Server,
+  type IncomingMessage,
+  type ServerResponse,
+} from "node:http";
 import { readFile } from "node:fs/promises";
 import { spawn } from "node:child_process";
 import { createRequire } from "node:module";
 import { randomUUID } from "node:crypto";
+import type { Browser } from "puppeteer";
 
 const require_ = createRequire(import.meta.url);
 
@@ -81,37 +87,41 @@ function mimeFor(ext: string): string {
   }
 }
 
-async function startStaticServer(rootDir: string): Promise<{ server: Server; port: number }> {
+async function startStaticServer(
+  rootDir: string,
+): Promise<{ server: Server; port: number }> {
   return new Promise((resolve, reject) => {
-    const server = createServer(async (req: IncomingMessage, res: ServerResponse) => {
-      try {
-        let url = (req.url || "/").split("?")[0];
-        if (url.endsWith("/")) url += "index.html";
-        if (url.includes("..")) {
-          res.writeHead(403).end("Forbidden");
-          return;
+    const server = createServer(
+      async (req: IncomingMessage, res: ServerResponse) => {
+        try {
+          let url = (req.url || "/").split("?")[0];
+          if (url.endsWith("/")) url += "index.html";
+          if (url.includes("..")) {
+            res.writeHead(403).end("Forbidden");
+            return;
+          }
+          const path = join(rootDir, url);
+          if (!path.startsWith(rootDir)) {
+            res.writeHead(403).end("Forbidden");
+            return;
+          }
+          if (!existsSync(path) || !statSync(path).isFile()) {
+            res.writeHead(404).end("Not found");
+            return;
+          }
+          const data = await readFile(path);
+          res.writeHead(200, {
+            "Content-Type": mimeFor(extname(path)),
+            "Cache-Control": "no-store",
+            "Cross-Origin-Opener-Policy": "same-origin",
+            "Cross-Origin-Embedder-Policy": "require-corp",
+          });
+          res.end(data);
+        } catch (e) {
+          res.writeHead(500).end((e as Error).message);
         }
-        const path = join(rootDir, url);
-        if (!path.startsWith(rootDir)) {
-          res.writeHead(403).end("Forbidden");
-          return;
-        }
-        if (!existsSync(path) || !statSync(path).isFile()) {
-          res.writeHead(404).end("Not found");
-          return;
-        }
-        const data = await readFile(path);
-        res.writeHead(200, {
-          "Content-Type": mimeFor(extname(path)),
-          "Cache-Control": "no-store",
-          "Cross-Origin-Opener-Policy": "same-origin",
-          "Cross-Origin-Embedder-Policy": "require-corp",
-        });
-        res.end(data);
-      } catch (e) {
-        res.writeHead(500).end((e as Error).message);
-      }
-    });
+      },
+    );
     server.listen(0, "127.0.0.1", () => {
       const addr = server.address();
       if (addr && typeof addr === "object") {
@@ -124,7 +134,10 @@ async function startStaticServer(rootDir: string): Promise<{ server: Server; por
   });
 }
 
-async function runExport(projectPath: string, outputDir: string): Promise<string> {
+async function runExport(
+  projectPath: string,
+  outputDir: string,
+): Promise<string> {
   const cliPath = require_.resolve("gdexporter/bin/cli.js");
   return new Promise((resolve, reject) => {
     const proc = spawn(
@@ -158,9 +171,17 @@ async function runExport(projectPath: string, outputDir: string): Promise<string
 function prepareProjectFile(
   projectPath: string,
   sceneName: string | undefined,
-): { exportInput: string; tempFile?: string; resolvedScene: string; resolvedFrom: "firstLayout" | "override" } {
+): {
+  exportInput: string;
+  tempFile?: string;
+  resolvedScene: string;
+  resolvedFrom: "firstLayout" | "override";
+} {
   const raw = readFileSync(projectPath, "utf-8");
-  const project = JSON.parse(raw) as { firstLayout: string; layouts: Array<{ name: string }> };
+  const project = JSON.parse(raw) as {
+    firstLayout: string;
+    layouts: Array<{ name: string }>;
+  };
 
   if (!sceneName || sceneName === project.firstLayout) {
     return {
@@ -188,7 +209,9 @@ function prepareProjectFile(
   };
 }
 
-export async function previewScene(opts: PreviewOptions): Promise<PreviewResult> {
+export async function previewScene(
+  opts: PreviewOptions,
+): Promise<PreviewResult> {
   const durationMs = opts.durationMs ?? 3000;
   const width = opts.width ?? 1280;
   const height = opts.height ?? 720;
@@ -199,7 +222,7 @@ export async function previewScene(opts: PreviewOptions): Promise<PreviewResult>
   const exportDir = join(tempBase, "build");
 
   let server: Server | undefined;
-  let browser: import("puppeteer").Browser | undefined;
+  let browser: Browser | undefined;
   const consoleLogs: string[] = [];
   const pageErrors: string[] = [];
 
@@ -238,8 +261,12 @@ export async function previewScene(opts: PreviewOptions): Promise<PreviewResult>
     await new Promise((r) => setTimeout(r, durationMs));
 
     const screenshotPath =
-      opts.screenshotPath ?? join(tmpdir(), `gdevelop-preview-${Date.now()}.png`);
-    await page.screenshot({ path: screenshotPath as `${string}.png`, type: "png" });
+      opts.screenshotPath ??
+      join(tmpdir(), `gdevelop-preview-${Date.now()}.png`);
+    await page.screenshot({
+      path: screenshotPath as `${string}.png`,
+      type: "png",
+    });
 
     const stats = statSync(screenshotPath);
 

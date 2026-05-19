@@ -24,16 +24,16 @@ test/                 # vitest unit tests
 
 ## Where to look
 
-| If you want to… | Read first |
-|---|---|
-| Understand the safe edit flow | [`.claude/rules/safety.md`](./.claude/rules/safety.md) |
-| Add a new MCP tool | [`.claude/skills/add-mcp-tool/SKILL.md`](./.claude/skills/add-mcp-tool/SKILL.md) |
-| Add a new MCP prompt | [`.claude/skills/add-mcp-prompt/SKILL.md`](./.claude/skills/add-mcp-prompt/SKILL.md) |
-| Add or update tests | [`.claude/skills/add-test/SKILL.md`](./.claude/skills/add-test/SKILL.md) |
-| Code style conventions | [`.claude/rules/code-style.md`](./.claude/rules/code-style.md) |
-| Module structure rules | [`.claude/rules/module-structure.md`](./.claude/rules/module-structure.md) |
-| Test rules | [`.claude/rules/testing.md`](./.claude/rules/testing.md) |
-| Debug the MCP server | [`.claude/skills/debug-mcp/SKILL.md`](./.claude/skills/debug-mcp/SKILL.md) |
+| If you want to…               | Read first                                                                           |
+| ----------------------------- | ------------------------------------------------------------------------------------ |
+| Understand the safe edit flow | [`.claude/rules/safety.md`](./.claude/rules/safety.md)                               |
+| Add a new MCP tool            | [`.claude/skills/add-mcp-tool/SKILL.md`](./.claude/skills/add-mcp-tool/SKILL.md)     |
+| Add a new MCP prompt          | [`.claude/skills/add-mcp-prompt/SKILL.md`](./.claude/skills/add-mcp-prompt/SKILL.md) |
+| Add or update tests           | [`.claude/skills/add-test/SKILL.md`](./.claude/skills/add-test/SKILL.md)             |
+| Code style conventions        | [`.claude/rules/code-style.md`](./.claude/rules/code-style.md)                       |
+| Module structure rules        | [`.claude/rules/module-structure.md`](./.claude/rules/module-structure.md)           |
+| Test rules                    | [`.claude/rules/testing.md`](./.claude/rules/testing.md)                             |
+| Debug the MCP server          | [`.claude/skills/debug-mcp/SKILL.md`](./.claude/skills/debug-mcp/SKILL.md)           |
 
 ## Hard rules
 

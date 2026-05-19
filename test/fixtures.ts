@@ -1,4 +1,6 @@
-export function minimalValidProject(overrides: Partial<Record<string, unknown>> = {}): Record<string, unknown> {
+export function minimalValidProject(
+  overrides: Partial<Record<string, unknown>> = {},
+): Record<string, unknown> {
   return {
     firstLayout: "MainScene",
     gdVersion: { major: 5, minor: 6, build: 268, revision: 0 },

@@ -35,7 +35,9 @@ export function validateProjectData(raw: unknown): ValidationResult {
   const knownBehaviorTypes = new Set(BEHAVIOR_TYPES.map((b) => b.type));
   const declaredResourceNames = new Set(
     project.resources.resources
-      .map((r) => (typeof r === "object" && r ? (r as { name?: string }).name : undefined))
+      .map((r) =>
+        typeof r === "object" && r ? (r as { name?: string }).name : undefined,
+      )
       .filter((n): n is string => typeof n === "string"),
   );
 
@@ -46,7 +48,11 @@ export function validateProjectData(raw: unknown): ValidationResult {
     const layoutObjectNames = new Set(layout.objects.map((o) => o.name));
 
     for (let oi = 0; oi < layout.objects.length; oi++) {
-      const obj = layout.objects[oi] as { type: string; name: string; behaviors?: unknown[] };
+      const obj = layout.objects[oi] as {
+        type: string;
+        name: string;
+        behaviors?: unknown[];
+      };
       const objPath = `layouts[${li}].objects[${oi}] (${obj.name})`;
 
       if (!knownObjectTypes.has(obj.type)) {
@@ -75,7 +81,10 @@ export function validateProjectData(raw: unknown): ValidationResult {
 
     for (let ii = 0; ii < layout.instances.length; ii++) {
       const inst = layout.instances[ii] as { name: string };
-      if (!layoutObjectNames.has(inst.name) && !globalObjectNames.has(inst.name)) {
+      if (
+        !layoutObjectNames.has(inst.name) &&
+        !globalObjectNames.has(inst.name)
+      ) {
         issues.push({
           severity: "error",
           path: `layouts[${li}].instances[${ii}]`,
@@ -98,7 +107,10 @@ export function validateProjectData(raw: unknown): ValidationResult {
     }
   }
 
-  if (project.firstLayout && !project.layouts.some((l) => l.name === project.firstLayout)) {
+  if (
+    project.firstLayout &&
+    !project.layouts.some((l) => l.name === project.firstLayout)
+  ) {
     issues.push({
       severity: "error",
       path: "firstLayout",

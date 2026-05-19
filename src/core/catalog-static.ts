@@ -153,16 +153,22 @@ export const BEHAVIOR_TYPES: BehaviorTypeInfo[] = [
   {
     type: "PlatformBehavior::PlatformerObjectBehavior",
     displayName: "Platformer character",
-    description: "Move an object as a platformer character with gravity and jumps.",
+    description:
+      "Move an object as a platformer character with gravity and jumps.",
     extension: "PlatformBehavior",
     appliesTo: ["Sprite", "Scene3D::Cube3DObject", "Scene3D::Model3DObject"],
   },
   {
     type: "PlatformBehavior::PlatformBehavior",
     displayName: "Platform",
-    description: "Make an object behave as a platform for platformer characters.",
+    description:
+      "Make an object behave as a platform for platformer characters.",
     extension: "PlatformBehavior",
-    appliesTo: ["Sprite", "TiledSpriteObject::TiledSprite", "PanelSpriteObject::PanelSprite"],
+    appliesTo: [
+      "Sprite",
+      "TiledSpriteObject::TiledSprite",
+      "PanelSpriteObject::PanelSprite",
+    ],
   },
   {
     type: "TopDownMovementBehavior::TopDownMovementBehavior",

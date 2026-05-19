@@ -9,8 +9,7 @@ async function fetchJsonCached<T>(url: string): Promise<T> {
   const hit = cache.get(url);
   if (hit && hit.expiresAt > Date.now()) return hit.value as T;
   const res = await fetch(url);
-  if (!res.ok)
-    throw new Error(`Examples CDN error (${res.status}) for ${url}`);
+  if (!res.ok) throw new Error(`Examples CDN error (${res.status}) for ${url}`);
   const value = (await res.json()) as T;
   cache.set(url, { value, expiresAt: Date.now() + CACHE_TTL_MS });
   return value;

@@ -17,6 +17,12 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint src test",
+    "lint:fix": "eslint src test --fix",
+    "format": "prettier --write \"{src,test}/**/*.{ts,js}\" \"*.md\"",
+    "format:check": "prettier --check \"{src,test}/**/*.{ts,js}\" \"*.md\"",
+    "check": "npm run typecheck && npm run lint && npm test",
     "inspect": "npx @modelcontextprotocol/inspector tsx src/index.ts"
   },
   "dependencies": {
@@ -28,8 +34,13 @@
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
+    "@vitest/coverage-v8": "^4.1.6",
+    "eslint": "^10.4.0",
+    "eslint-config-prettier": "^10.1.8",
+    "prettier": "^3.8.3",
     "tsx": "^4.19.0",
     "typescript": "^5.6.0",
+    "typescript-eslint": "^8.59.4",
     "vitest": "^4.1.6"
   },
   "engines": {

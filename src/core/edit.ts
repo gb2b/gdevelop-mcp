@@ -12,7 +12,10 @@ const AddLayoutOp = z.object({
 
 const AddObjectOp = z.object({
   op: z.literal("add_object"),
-  type: z.string().min(1).describe("Internal type, e.g. 'Sprite' or 'TextObject::Text'"),
+  type: z
+    .string()
+    .min(1)
+    .describe("Internal type, e.g. 'Sprite' or 'TextObject::Text'"),
   name: z.string().min(1),
   scope: z.enum(["scene", "global"]).optional().default("scene"),
   scene: z.string().optional(),
@@ -56,7 +59,13 @@ export type EditOp = z.infer<typeof EditOpSchema>;
 
 type ProjectShape = Record<string, unknown> & {
   firstLayout?: string;
-  layouts: Array<Record<string, unknown> & { name: string; objects: unknown[]; instances: unknown[] }>;
+  layouts: Array<
+    Record<string, unknown> & {
+      name: string;
+      objects: unknown[];
+      instances: unknown[];
+    }
+  >;
   objects: unknown[];
 };
 
@@ -113,7 +122,10 @@ function defaultLayoutTemplate(name: string) {
   };
 }
 
-function applyAddLayout(project: ProjectShape, op: z.infer<typeof AddLayoutOp>) {
+function applyAddLayout(
+  project: ProjectShape,
+  op: z.infer<typeof AddLayoutOp>,
+) {
   if (project.layouts.some((l) => l.name === op.name)) {
     throw new Error(`Layout "${op.name}" already exists.`);
   }
@@ -123,7 +135,10 @@ function applyAddLayout(project: ProjectShape, op: z.infer<typeof AddLayoutOp>) 
   }
 }
 
-function applyAddObject(project: ProjectShape, op: z.infer<typeof AddObjectOp>) {
+function applyAddObject(
+  project: ProjectShape,
+  op: z.infer<typeof AddObjectOp>,
+) {
   const scope = op.scope ?? "scene";
   const known = findObjectType(op.type);
   const defaultContent =
@@ -141,7 +156,11 @@ function applyAddObject(project: ProjectShape, op: z.infer<typeof AddObjectOp>) 
   };
 
   if (scope === "global") {
-    if ((project.objects as Array<{ name: string }>).some((o) => o.name === op.name)) {
+    if (
+      (project.objects as Array<{ name: string }>).some(
+        (o) => o.name === op.name,
+      )
+    ) {
       throw new Error(`Global object "${op.name}" already exists.`);
     }
     project.objects.push(objectEntry);
@@ -151,14 +170,23 @@ function applyAddObject(project: ProjectShape, op: z.infer<typeof AddObjectOp>) 
     }
     const layout = project.layouts.find((l) => l.name === op.scene);
     if (!layout) throw new Error(`Layout "${op.scene}" not found.`);
-    if ((layout.objects as Array<{ name: string }>).some((o) => o.name === op.name)) {
-      throw new Error(`Object "${op.name}" already exists in scene "${op.scene}".`);
+    if (
+      (layout.objects as Array<{ name: string }>).some(
+        (o) => o.name === op.name,
+      )
+    ) {
+      throw new Error(
+        `Object "${op.name}" already exists in scene "${op.scene}".`,
+      );
     }
     layout.objects.push(objectEntry);
   }
 }
 
-function applyAddInstance(project: ProjectShape, op: z.infer<typeof AddInstanceOp>) {
+function applyAddInstance(
+  project: ProjectShape,
+  op: z.infer<typeof AddInstanceOp>,
+) {
   const layout = project.layouts.find((l) => l.name === op.scene);
   if (!layout) throw new Error(`Layout "${op.scene}" not found.`);
   const layoutObjects = layout.objects as Array<{ name: string }>;
@@ -190,7 +218,10 @@ function applyAddInstance(project: ProjectShape, op: z.infer<typeof AddInstanceO
   });
 }
 
-function applyAttachBehavior(project: ProjectShape, op: z.infer<typeof AttachBehaviorOp>) {
+function applyAttachBehavior(
+  project: ProjectShape,
+  op: z.infer<typeof AttachBehaviorOp>,
+) {
   const scope = op.scope ?? "scene";
   let target: Record<string, unknown> | undefined;
 
@@ -199,7 +230,8 @@ function applyAttachBehavior(project: ProjectShape, op: z.infer<typeof AttachBeh
       (o) => o["name"] === op.objectName,
     );
   } else {
-    if (!op.scene) throw new Error(`attach_behavior scope="scene" requires a scene name.`);
+    if (!op.scene)
+      throw new Error(`attach_behavior scope="scene" requires a scene name.`);
     const layout = project.layouts.find((l) => l.name === op.scene);
     if (!layout) throw new Error(`Layout "${op.scene}" not found.`);
     target = (layout.objects as Record<string, unknown>[]).find(
@@ -211,7 +243,8 @@ function applyAttachBehavior(project: ProjectShape, op: z.infer<typeof AttachBeh
     throw new Error(`Object "${op.objectName}" not found (scope=${scope}).`);
   }
 
-  const behaviors = (target["behaviors"] as Array<Record<string, unknown>>) ?? [];
+  const behaviors =
+    (target["behaviors"] as Array<Record<string, unknown>>) ?? [];
   const behaviorName = op.name ?? op.type.split("::").pop() ?? op.type;
   if (behaviors.some((b) => b["name"] === behaviorName)) {
     throw new Error(
@@ -229,8 +262,18 @@ function applyAttachBehavior(project: ProjectShape, op: z.infer<typeof AttachBeh
 
 export type EditSummary = {
   layoutsAdded: string[];
-  objectsAdded: Array<{ scope: "scene" | "global"; scene?: string; name: string; type: string }>;
-  instancesAdded: Array<{ scene: string; objectName: string; x: number; y: number }>;
+  objectsAdded: Array<{
+    scope: "scene" | "global";
+    scene?: string;
+    name: string;
+    type: string;
+  }>;
+  instancesAdded: Array<{
+    scene: string;
+    objectName: string;
+    x: number;
+    y: number;
+  }>;
   behaviorsAttached: Array<{ objectName: string; type: string; name: string }>;
 };
 
@@ -313,8 +356,10 @@ export async function editProject(
   const baselineValidation = validateProjectData(projectOriginal);
   const baseline = {
     valid: baselineValidation.valid,
-    errors: baselineValidation.issues.filter((i) => i.severity === "error").length,
-    warnings: baselineValidation.issues.filter((i) => i.severity === "warning").length,
+    errors: baselineValidation.issues.filter((i) => i.severity === "error")
+      .length,
+    warnings: baselineValidation.issues.filter((i) => i.severity === "warning")
+      .length,
   };
 
   if (!baselineValidation.valid && requireBaselineValid) {

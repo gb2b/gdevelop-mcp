@@ -33,7 +33,8 @@ type AssetResource = {
 
 function inferResourceKind(fileName: string): string {
   const ext = extname(fileName).toLowerCase().slice(1);
-  if (["png", "jpg", "jpeg", "webp", "gif", "svg"].includes(ext)) return "image";
+  if (["png", "jpg", "jpeg", "webp", "gif", "svg"].includes(ext))
+    return "image";
   if (["wav", "mp3", "ogg", "m4a"].includes(ext)) return "audio";
   if (ext === "json") return "json";
   if (["ttf", "otf"].includes(ext)) return "font";

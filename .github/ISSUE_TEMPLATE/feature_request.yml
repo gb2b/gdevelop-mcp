@@ -1,0 +1,40 @@
+name: Feature request
+description: Propose a new tool, prompt, or capability
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the suggestion! Please describe the use case before the
+        solution — it helps us evaluate alternatives.
+  - type: textarea
+    id: use-case
+    attributes:
+      label: Use case
+      description: What are you trying to accomplish?
+      placeholder: "I want my agent to be able to…"
+    validations:
+      required: true
+  - type: textarea
+    id: proposed
+    attributes:
+      label: Proposed solution
+      description: |
+        If you have one in mind. Otherwise skip this and we'll discuss.
+        For new tools, include the proposed name, inputs, and outputs.
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Existing tools or workarounds you've tried.
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Scope
+      options:
+        - New MCP tool
+        - New MCP prompt
+        - Extension of an existing tool
+        - Documentation
+        - Internal refactor
+        - Other

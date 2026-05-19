@@ -19,9 +19,9 @@ describe("validateProjectData", () => {
     const project = minimalValidProject({ firstLayout: "Nonexistent" });
     const result = validateProjectData(project);
     expect(result.valid).toBe(false);
-    expect(
-      result.issues.some((i) => i.code === "missing_first_layout"),
-    ).toBe(true);
+    expect(result.issues.some((i) => i.code === "missing_first_layout")).toBe(
+      true,
+    );
   });
 
   it("flags instance referencing missing object", () => {

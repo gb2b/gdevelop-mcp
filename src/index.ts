@@ -134,10 +134,7 @@ server.tool(
   "list_behavior_types",
   "List known GDevelop behavior types with their internal JSON identifiers and which objects they can be attached to.",
   {
-    extension: z
-      .string()
-      .optional()
-      .describe("Optional extension name filter"),
+    extension: z.string().optional().describe("Optional extension name filter"),
   },
   async ({ extension }) => {
     let types = BEHAVIOR_TYPES;
@@ -267,8 +264,7 @@ server.tool(
           extension: ext.name,
           hasJsExtension: ext.hasJsExtension,
           files: ext.runtimeFiles,
-          hint:
-            "Call again with a 'file' parameter to read the source. For metadata (objects, actions, conditions, expressions), read JsExtension.js when available.",
+          hint: "Call again with a 'file' parameter to read the source. For metadata (objects, actions, conditions, expressions), read JsExtension.js when available.",
         });
       }
       const source = readExtensionFile(install, extension, file);
@@ -283,7 +279,9 @@ server.tool(
   "validate_project",
   "Load a GDevelop project file (.json) and validate it. Checks: top-level structure (zod), known object/behavior types, instance→object references, firstLayout existence. Returns errors AND warnings separately.",
   {
-    path: z.string().describe("Absolute path to the GDevelop .json project file"),
+    path: z
+      .string()
+      .describe("Absolute path to the GDevelop .json project file"),
   },
   async ({ path }) => {
     try {
@@ -351,7 +349,9 @@ RECOMMENDED FLOW:
 
 By default: baseline is validated first (refuses to edit a broken project), a timestamped .bak file is created before writing, and you get a 'summary' of what changed.`,
   {
-    path: z.string().describe("Absolute path to the GDevelop .json project file"),
+    path: z
+      .string()
+      .describe("Absolute path to the GDevelop .json project file"),
     operations: z
       .array(EditOpSchema)
       .min(1)
@@ -391,18 +391,29 @@ server.tool(
   "inspect_project",
   "Returns a compact, human-readable summary of a GDevelop project: scenes, objects (with type and attached behaviors), instance counts, events counts, global objects, resources. Use this BEFORE editing to see the current state, and AFTER to verify your changes. Much more readable than dumping the raw JSON.",
   {
-    path: z.string().describe("Absolute path to the GDevelop .json project file"),
+    path: z
+      .string()
+      .describe("Absolute path to the GDevelop .json project file"),
   },
   async ({ path }) => {
     try {
       const raw = readFileSync(path, "utf-8");
       const project = JSON.parse(raw) as {
-        properties: { name: string; version: string; windowWidth: number; windowHeight: number };
+        properties: {
+          name: string;
+          version: string;
+          windowWidth: number;
+          windowHeight: number;
+        };
         gdVersion: { major: number; minor: number; build: number };
         firstLayout: string;
         layouts: Array<{
           name: string;
-          objects: Array<{ name: string; type: string; behaviors?: Array<{ name: string; type: string }> }>;
+          objects: Array<{
+            name: string;
+            type: string;
+            behaviors?: Array<{ name: string; type: string }>;
+          }>;
           instances: unknown[];
           events: unknown[];
           layers: Array<{ name: string }>;
@@ -429,7 +440,10 @@ server.tool(
           events: l.events.length,
           layers: l.layers.map((la) => la.name || "<base>"),
         })),
-        globalObjects: project.objects.map((o) => ({ name: o.name, type: o.type })),
+        globalObjects: project.objects.map((o) => ({
+          name: o.name,
+          type: o.type,
+        })),
         resources: project.resources.resources.length,
         customExtensions: project.eventsFunctionsExtensions.length,
       });
@@ -512,9 +526,7 @@ server.tool(
         packs = packs.filter((p) => p.categories.includes(category));
       }
       if (license) {
-        packs = packs.filter((p) =>
-          p.licenses.some((l) => l.name === license),
-        );
+        packs = packs.filter((p) => p.licenses.some((l) => l.name === license));
       }
       return textResult({
         total: packs.length,
@@ -702,7 +714,9 @@ server.tool(
   "list_backups",
   "List all backup files (.bak-<timestamp>) that exist for a given project, sorted most recent first.",
   {
-    path: z.string().describe("Absolute path to the GDevelop .json project file"),
+    path: z
+      .string()
+      .describe("Absolute path to the GDevelop .json project file"),
   },
   async ({ path }) => {
     try {
@@ -725,7 +739,9 @@ server.tool(
   "undo_last_edit",
   "Restore the project from its most recent .bak file. Before restoring, the current file is itself backed up as .bak-<timestamp>-pre-restore so the operation is reversible.",
   {
-    path: z.string().describe("Absolute path to the GDevelop .json project file"),
+    path: z
+      .string()
+      .describe("Absolute path to the GDevelop .json project file"),
     backupPath: z
       .string()
       .optional()
@@ -779,7 +795,9 @@ For each asset:
 
 A single backup .bak-<timestamp> is created at the start. Project is written atomically at the end.`,
   {
-    projectPath: z.string().describe("Absolute path to the GDevelop .json project file"),
+    projectPath: z
+      .string()
+      .describe("Absolute path to the GDevelop .json project file"),
     assetIds: z
       .array(z.string())
       .optional()
@@ -787,17 +805,23 @@ A single backup .bak-<timestamp> is created at the start. Project is written ato
     packTag: z
       .string()
       .optional()
-      .describe("Tag string (e.g. 'foliage pack') — imports all assets with this tag"),
+      .describe(
+        "Tag string (e.g. 'foliage pack') — imports all assets with this tag",
+      ),
     scope: z.enum(["scene", "global"]).optional(),
     scene: z.string().optional().describe("Required if scope='scene'"),
     placeAt: z
       .object({ x: z.number(), y: z.number() })
       .optional()
-      .describe("Base position; if set, instances are placed in a grid starting from here"),
+      .describe(
+        "Base position; if set, instances are placed in a grid starting from here",
+      ),
     placementSpacing: z
       .object({ x: z.number(), y: z.number() })
       .optional()
-      .describe("X/Y spacing between consecutive instances (default {x:100, y:0})"),
+      .describe(
+        "X/Y spacing between consecutive instances (default {x:100, y:0})",
+      ),
     perRow: z
       .number()
       .int()
@@ -851,7 +875,9 @@ Use this when you want to verify what the game actually looks like at runtime �
 
 First call is slow (~10-20s, includes Chromium startup + GDevelop runtime load). Subsequent calls are faster (~5-8s).`,
   {
-    projectPath: z.string().describe("Absolute path to the GDevelop .json project file"),
+    projectPath: z
+      .string()
+      .describe("Absolute path to the GDevelop .json project file"),
     sceneName: z
       .string()
       .optional()
@@ -872,13 +898,25 @@ First call is slow (~10-20s, includes Chromium startup + GDevelop runtime load).
     screenshotPath: z
       .string()
       .optional()
-      .describe("Where to save the PNG. Defaults to /tmp/gdevelop-preview-<ts>.png"),
+      .describe(
+        "Where to save the PNG. Defaults to /tmp/gdevelop-preview-<ts>.png",
+      ),
     keepExport: z
       .boolean()
       .optional()
-      .describe("If true, do not delete the temp export directory (for debugging)"),
+      .describe(
+        "If true, do not delete the temp export directory (for debugging)",
+      ),
   },
-  async ({ projectPath, sceneName, durationMs, width, height, screenshotPath, keepExport }) => {
+  async ({
+    projectPath,
+    sceneName,
+    durationMs,
+    width,
+    height,
+    screenshotPath,
+    keepExport,
+  }) => {
     try {
       const result = await previewScene({
         projectPath,
@@ -910,12 +948,19 @@ What it renders:
 
 Limits: no animations beyond frame 0, no behaviors (positions are initial only), no effects, no real 3D. Use this to iterate fast on layout; use preview_scene when you need real runtime, animations, or 3D.`,
   {
-    projectPath: z.string().describe("Absolute path to the GDevelop .json project file"),
-    sceneName: z.string().optional().describe("Scene to render (default: firstLayout)"),
+    projectPath: z
+      .string()
+      .describe("Absolute path to the GDevelop .json project file"),
+    sceneName: z
+      .string()
+      .optional()
+      .describe("Scene to render (default: firstLayout)"),
     outputPath: z
       .string()
       .optional()
-      .describe("Where to save the PNG (default: /tmp/gdevelop-scene-<scene>-<ts>.png)"),
+      .describe(
+        "Where to save the PNG (default: /tmp/gdevelop-scene-<scene>-<ts>.png)",
+      ),
     width: z.number().int().positive().max(3840).optional(),
     height: z.number().int().positive().max(2160).optional(),
     showLabels: z
@@ -927,7 +972,15 @@ Limits: no animations beyond frame 0, no behaviors (positions are initial only),
       .optional()
       .describe("CSS color for the canvas background (default '#3a3a40')"),
   },
-  async ({ projectPath, sceneName, outputPath, width, height, showLabels, background }) => {
+  async ({
+    projectPath,
+    sceneName,
+    outputPath,
+    width,
+    height,
+    showLabels,
+    background,
+  }) => {
     try {
       const result = await renderSceneStatic({
         projectPath,

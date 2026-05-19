@@ -1,5 +1,10 @@
 # gdevelop-mcp
 
+[![CI](https://github.com/gb2b/gdevelop-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/gb2b/gdevelop-mcp/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D18-brightgreen)](./package.json)
+[![MCP](https://img.shields.io/badge/MCP-server-blue)](https://modelcontextprotocol.io)
+
 An [MCP](https://modelcontextprotocol.io) server for
 [GDevelop](https://gdevelop.io) — gives any MCP-aware LLM agent
 (Claude Code, Cursor, etc.) the ability to introspect, validate, edit,
@@ -29,6 +34,7 @@ agent and use to:
   `diff_projects`
 
 All powered by a combination of:
+
 - Your local GDevelop install (the TypeScript runtime sources shipped with the
   desktop app — auto-detected on macOS / Linux / Windows)
 - GDevelop's public CDN for assets, examples, and filters
@@ -65,62 +71,62 @@ appear as slash-commands (e.g. `/gdevelop:add-hero`).
 
 ### Introspection
 
-| Tool | Purpose |
-|---|---|
-| `gdevelop_install_info` | Which GDevelop install is detected |
-| `list_extensions` | All extensions in your local GDJS install |
-| `list_object_types` | Curated catalog of object types |
-| `list_behavior_types` | Curated catalog of behavior types |
-| `describe_object_schema` | Schema + content example for a type |
-| `list_dynamic_catalog` | Auto-parsed catalog from your GDJS sources |
-| `read_extension_source` | Raw TS/JS source of any extension file |
-| `read_github_source` | Fetch any file from the GDevelop GitHub repos |
+| Tool                     | Purpose                                       |
+| ------------------------ | --------------------------------------------- |
+| `gdevelop_install_info`  | Which GDevelop install is detected            |
+| `list_extensions`        | All extensions in your local GDJS install     |
+| `list_object_types`      | Curated catalog of object types               |
+| `list_behavior_types`    | Curated catalog of behavior types             |
+| `describe_object_schema` | Schema + content example for a type           |
+| `list_dynamic_catalog`   | Auto-parsed catalog from your GDJS sources    |
+| `read_extension_source`  | Raw TS/JS source of any extension file        |
+| `read_github_source`     | Fetch any file from the GDevelop GitHub repos |
 
 ### Editing & safety
 
-| Tool | Purpose |
-|---|---|
-| `inspect_project` | Compact summary of a project |
-| `validate_project` | Structural + cross-reference validation |
-| `edit_project` | Atomic batch ops (`add_layout`/`add_object`/`add_instance`/`attach_behavior`) |
-| `list_backups` | List `.bak-*` files for a project |
-| `undo_last_edit` | Restore the latest (or a specific) backup |
-| `diff_projects` | Semantic diff between two projects |
+| Tool               | Purpose                                                                       |
+| ------------------ | ----------------------------------------------------------------------------- |
+| `inspect_project`  | Compact summary of a project                                                  |
+| `validate_project` | Structural + cross-reference validation                                       |
+| `edit_project`     | Atomic batch ops (`add_layout`/`add_object`/`add_instance`/`attach_behavior`) |
+| `list_backups`     | List `.bak-*` files for a project                                             |
+| `undo_last_edit`   | Restore the latest (or a specific) backup                                     |
+| `diff_projects`    | Semantic diff between two projects                                            |
 
 ### Assets
 
-| Tool | Purpose |
-|---|---|
-| `list_asset_packs` | 129 official packs (Kenney, Foliage, etc.) |
-| `list_asset_filters` | Available tags |
-| `search_assets` | Search 11k+ public assets (CC0 by default) |
-| `get_asset_details` | Full GDevelop-ready object JSON |
+| Tool                         | Purpose                                         |
+| ---------------------------- | ----------------------------------------------- |
+| `list_asset_packs`           | 129 official packs (Kenney, Foliage, etc.)      |
+| `list_asset_filters`         | Available tags                                  |
+| `search_assets`              | Search 11k+ public assets (CC0 by default)      |
+| `get_asset_details`          | Full GDevelop-ready object JSON                 |
 | `import_assets_into_project` | Download + insert one, several, or a whole pack |
 
 ### Examples
 
-| Tool | Purpose |
-|---|---|
-| `list_examples` | 281 official MIT-licensed example projects |
-| `list_example_filters` | Available tags |
-| `get_example_details` | Metadata + GitHub source path |
+| Tool                   | Purpose                                    |
+| ---------------------- | ------------------------------------------ |
+| `list_examples`        | 281 official MIT-licensed example projects |
+| `list_example_filters` | Available tags                             |
+| `get_example_details`  | Metadata + GitHub source path              |
 
 ### Preview
 
-| Tool | Purpose | Speed |
-|---|---|---|
-| `render_scene_static` | Canvas-based static layout render | <1s |
-| `preview_scene` | Real runtime via gdexporter + puppeteer | ~10s |
+| Tool                  | Purpose                                 | Speed |
+| --------------------- | --------------------------------------- | ----- |
+| `render_scene_static` | Canvas-based static layout render       | <1s   |
+| `preview_scene`       | Real runtime via gdexporter + puppeteer | ~10s  |
 
 ## Prompts (slash-commands)
 
-| Prompt | Use |
-|---|---|
-| `start-from-example` | Bootstrap by learning from an official example |
-| `add-hero` | Find a CC0 hero sprite + wire the right movement behavior |
-| `debug-project` | Diagnose a broken project (validate / inspect / diff against backups) |
-| `browse-store` | Curated asset search + import flow for a theme |
-| `safe-edit-flow` | Enforce inspect → dryRun → apply → verify |
+| Prompt               | Use                                                                   |
+| -------------------- | --------------------------------------------------------------------- |
+| `start-from-example` | Bootstrap by learning from an official example                        |
+| `add-hero`           | Find a CC0 hero sprite + wire the right movement behavior             |
+| `debug-project`      | Diagnose a broken project (validate / inspect / diff against backups) |
+| `browse-store`       | Curated asset search + import flow for a theme                        |
+| `safe-edit-flow`     | Enforce inspect → dryRun → apply → verify                             |
 
 ## Safety design
 

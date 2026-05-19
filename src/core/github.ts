@@ -51,7 +51,9 @@ export async function fetchGitHubPath(
       `GitHub API error (${apiRes.status}) for ${repo}/${cleanPath}@${ref}: ${apiRes.statusText}`,
     );
   }
-  const data = (await apiRes.json()) as GitHubContentsItem | GitHubContentsItem[];
+  const data = (await apiRes.json()) as
+    | GitHubContentsItem
+    | GitHubContentsItem[];
 
   if (Array.isArray(data)) {
     return {

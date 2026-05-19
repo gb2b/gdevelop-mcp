@@ -84,6 +84,7 @@ module.
 ## Reporting issues
 
 Please include:
+
 - GDevelop version (e.g. `5.6.268`)
 - OS and Node version
 - Minimal reproduction (a tiny `.json` project + the MCP tool call)

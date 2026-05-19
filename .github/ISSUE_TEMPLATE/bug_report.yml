@@ -1,0 +1,66 @@
+name: Bug report
+description: Report a bug in gdevelop-mcp
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for filing a bug! Please fill in as much as you can so we can
+        reproduce quickly.
+  - type: input
+    id: gdevelop-version
+    attributes:
+      label: GDevelop version
+      placeholder: "5.6.268"
+    validations:
+      required: true
+  - type: input
+    id: mcp-version
+    attributes:
+      label: gdevelop-mcp version
+      placeholder: "0.10.0"
+    validations:
+      required: true
+  - type: input
+    id: node-version
+    attributes:
+      label: Node version
+      placeholder: "22.x"
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      placeholder: "macOS 14.5 / Ubuntu 24.04 / Windows 11"
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Describe the unexpected behavior.
+      placeholder: "When I called preview_scene with sceneName=Level1, it threw…"
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Reproduction
+      description: |
+        Ideal: a tiny `game.json` snippet + the exact MCP tool call (name +
+        arguments JSON) that triggers the bug.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs / stack trace
+      render: text
