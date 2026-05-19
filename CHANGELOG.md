@@ -3,6 +3,38 @@
 All notable changes to this project are documented here. Versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.10.1] — 2026-05-19
+
+### Changed
+
+- Restructured `src/` into `src/core/` (one concern per file) with clearer
+  module names (`install`, `extensions`, `catalog-static`, `catalog-dynamic`,
+  `preview-runtime`, `render-static`, `schema`).
+
+### Added
+
+- Tooling: ESLint 10 (flat config), Prettier 3, `@vitest/coverage-v8`,
+  `.editorconfig`, `.nvmrc` (Node 22). New scripts `lint`, `lint:fix`,
+  `format`, `format:check`, `test:coverage`, `check`.
+- GitHub: CI workflow (typecheck + lint + format-check + tests + build),
+  Dependabot (weekly npm, monthly actions), bug + feature request issue
+  templates, PR template.
+- Docs: `SECURITY.md`, `CODE_OF_CONDUCT.md` (Contributor Covenant 2.1),
+  README badges (CI, license, Node, MCP), `examples/` with smoke-test and
+  inspect-project scripts.
+- `.claude/skills/release-version` for the release workflow.
+- Test coverage extended from 19 to 35 tests: `test/backups.test.ts`,
+  `test/asset-import.test.ts` (with mocked fetch), additional edge cases for
+  `diff`.
+
+### Dependencies
+
+- zod 3.25 → 4.4
+- TypeScript 5.9 → 6.0
+- @types/node 22 → 25
+- actions/checkout 4 → 6
+- actions/setup-node 4 → 6
+
 ## [0.10.0] — 2026-05-19
 
 ### Added
