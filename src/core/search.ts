@@ -126,6 +126,10 @@ export function searchGdevelopCode(opts: SearchOptions): SearchResult {
             context: ctx.length > 0 ? ctx : undefined,
           });
         }
+        // Hard cap to prevent pathological regex (e.g. ".") from
+        // exhausting memory or burning tokens. We stop counting after
+        // 10k matches; the response reports `truncated: true`.
+        if (matchesTotal >= 10_000) break outer;
         if (matchesTotal >= maxResults * 5) break outer;
       }
     }

@@ -245,8 +245,36 @@ export function buildInstructionCatalog(
     parseCoreBuiltinDir(all, coreBuiltinPath);
   }
 
-  cached = all;
+  cached = dedupeInstructions(all);
   return cached;
+}
+
+/**
+ * Identical (type, kind, extension) entries can be produced more than once
+ * when both Extension.cpp and a sibling Extension.cpp file in the same
+ * directory mention the same action. We keep the first occurrence and
+ * prefer the richer one (with fullName/description filled) over the bare
+ * one when both exist for the same key.
+ */
+function dedupeInstructions(items: InstructionSpec[]): InstructionSpec[] {
+  const bestByKey = new Map<string, InstructionSpec>();
+  for (const item of items) {
+    const key = `${item.kind}::${item.type}::${item.extension}`;
+    const existing = bestByKey.get(key);
+    if (!existing) {
+      bestByKey.set(key, item);
+      continue;
+    }
+    const existingRichness =
+      (existing.fullName === existing.type ? 0 : 1) +
+      (existing.description ? 1 : 0);
+    const candidateRichness =
+      (item.fullName === item.type ? 0 : 1) + (item.description ? 1 : 0);
+    if (candidateRichness > existingRichness) {
+      bestByKey.set(key, item);
+    }
+  }
+  return [...bestByKey.values()];
 }
 
 function parseCoreBuiltinDir(all: InstructionSpec[], dir: string): void {

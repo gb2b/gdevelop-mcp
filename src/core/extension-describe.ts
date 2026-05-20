@@ -6,6 +6,20 @@ import {
   findInstructions,
 } from "./catalog-actions.js";
 
+export type DescribeExtensionOptions = {
+  /**
+   * Restrict the listings included in the response. When set, only the
+   * specified kinds are returned (others are still counted). Useful to
+   * reduce token cost when the caller only needs e.g. actions.
+   */
+  include?: Array<"actions" | "conditions" | "expressions" | "strExpressions">;
+  /**
+   * If true, omit all instruction listings — just counts + paths + files.
+   * Cheapest call for a quick orientation.
+   */
+  summaryOnly?: boolean;
+};
+
 export type ExtensionDescription = {
   name: string;
   found: boolean;
@@ -24,10 +38,10 @@ export type ExtensionDescription = {
     runtimeObjects: number;
     runtimeBehaviors: number;
   };
-  actions: Array<{ type: string; fullName: string; description: string }>;
-  conditions: Array<{ type: string; fullName: string; description: string }>;
-  expressions: Array<{ type: string; fullName: string; description: string }>;
-  strExpressions: Array<{
+  actions?: Array<{ type: string; fullName: string; description: string }>;
+  conditions?: Array<{ type: string; fullName: string; description: string }>;
+  expressions?: Array<{ type: string; fullName: string; description: string }>;
+  strExpressions?: Array<{
     type: string;
     fullName: string;
     description: string;
@@ -58,7 +72,26 @@ function safeStatFile(p: string): boolean {
 export function describeExtension(
   install: GDevelopInstall,
   name: string,
+  options: DescribeExtensionOptions = {},
 ): ExtensionDescription {
+  const includeAll = !options.summaryOnly;
+  const includes = options.include
+    ? new Set(options.include)
+    : new Set<string>([
+        "actions",
+        "conditions",
+        "expressions",
+        "strExpressions",
+      ]);
+  function maybe<T>(
+    kind: "actions" | "conditions" | "expressions" | "strExpressions",
+    value: T,
+  ): T | undefined {
+    if (!includeAll) return undefined;
+    if (options.include && !includes.has(kind)) return undefined;
+    return value;
+  }
+
   const extDir = join(install.extensionsPath, name);
   const found = existsSync(extDir) && statSync(extDir).isDirectory();
 
@@ -141,10 +174,10 @@ export function describeExtension(
       runtimeObjects: runtimeObjects.length,
       runtimeBehaviors: runtimeBehaviors.length,
     },
-    actions: projection(byKind.action),
-    conditions: projection(byKind.condition),
-    expressions: projection(byKind.expression),
-    strExpressions: projection(byKind.strExpression),
+    actions: maybe("actions", projection(byKind.action)),
+    conditions: maybe("conditions", projection(byKind.condition)),
+    expressions: maybe("expressions", projection(byKind.expression)),
+    strExpressions: maybe("strExpressions", projection(byKind.strExpression)),
     runtimeObjects,
     runtimeBehaviors,
     readmeExcerpt,

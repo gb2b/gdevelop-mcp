@@ -3,6 +3,31 @@
 All notable changes to this project are documented here. Versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.17.2] — 2026-05-20
+
+### Added
+
+- **`src/core/logger.ts`**: stdio-safe central logger. All output goes
+  to `stderr` (stdout is owned by the MCP transport). Level controlled
+  by `GDEVELOP_MCP_LOG_LEVEL` env var. Use this in `src/core/*` instead
+  of `console.log` / `console.error`.
+
+### Changed
+
+- **`search_gdevelop_code`**: hard cap at 10 000 total matches before
+  early-terminating the scan. Protects against pathological regexes
+  (e.g. `.`) that would burn memory + tokens. Result is reported as
+  `truncated: true`.
+- **`describe_extension`**: now token-efficient by default. New optional
+  args: `summaryOnly` (skip all listings, return just counts + paths)
+  and `include: ["actions", "conditions", "expressions", "strExpressions"]`
+  to restrict which instruction kinds are returned.
+- **Catalog dedup**: `buildInstructionCatalog` now deduplicates by
+  `(kind, type, extension)`. When multiple sources (Extension.cpp +
+  sibling .cpp) define the same instruction, the richer entry (with
+  fullName/description filled) wins. Cleaner output for
+  `describe_instruction` and stable counts.
+
 ## [0.17.1] — 2026-05-20
 
 ### Supply chain hardening

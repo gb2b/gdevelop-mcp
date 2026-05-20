@@ -120,18 +120,34 @@ export function registerExtensionsTools(server: McpServer): void {
 
   server.tool(
     "describe_extension",
-    "Aggregate everything the cache knows about a given GDevelop extension: file list, paths to Extension.cpp / JsExtension.js / README, counts and full list of actions/conditions/expressions, runtime object/behavior file names, README excerpt. Use this BEFORE diving into individual files to get a single bird's-eye view.",
+    "Aggregate everything the cache knows about a given GDevelop extension: file list, paths to Extension.cpp / JsExtension.js / README, counts and (optionally) full list of actions/conditions/expressions, runtime object/behavior file names, README excerpt. Token-efficient by default: pass `summaryOnly:true` for just counts+paths, or `include:[...]` to pick which kinds you actually need.",
     {
       name: z
         .string()
         .describe(
           "Extension folder name (e.g. 'PlatformBehavior', 'TextObject', 'Lighting').",
         ),
+      summaryOnly: z
+        .boolean()
+        .optional()
+        .describe(
+          "If true, skip the action/condition/expression listings. Returns just counts + paths + files.",
+        ),
+      include: z
+        .array(
+          z.enum(["actions", "conditions", "expressions", "strExpressions"]),
+        )
+        .optional()
+        .describe(
+          "Restrict which instruction kinds to include in the response. Counts are always returned.",
+        ),
     },
-    async ({ name }) => {
+    async ({ name, summaryOnly, include }) => {
       try {
         const install = findGDevelopInstall();
-        return textResult(describeExtension(install, name));
+        return textResult(
+          describeExtension(install, name, { summaryOnly, include }),
+        );
       } catch (err) {
         return errorResult((err as Error).message);
       }
