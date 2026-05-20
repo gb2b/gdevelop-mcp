@@ -1,15 +1,40 @@
 {
   "name": "gdevelop-mcp",
-  "version": "0.19.0",
+  "version": "0.19.1",
   "description": "MCP server for GDevelop project introspection, editing, and preview — backed by the canonical 4ian/GDevelop GitHub repo.",
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "gdevelop",
+    "game-dev",
+    "claude-code",
+    "anthropic",
+    "code-introspection"
+  ],
+  "homepage": "https://github.com/gb2b/gdevelop-mcp#readme",
+  "bugs": {
+    "url": "https://github.com/gb2b/gdevelop-mcp/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gb2b/gdevelop-mcp.git"
+  },
+  "license": "MIT",
   "type": "module",
+  "main": "dist/index.js",
   "bin": {
     "gdevelop-mcp": "dist/index.js"
   },
   "files": [
     "dist",
-    "data"
+    "data",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsc",
     "dev": "tsx src/index.ts",

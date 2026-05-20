@@ -3,6 +3,25 @@
 All notable changes to this project are documented here. Versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.19.1] — 2026-05-20
+
+### Added
+
+- **`test/integration.test.ts`** — opt-in end-to-end test that exercises
+  the full template → edit → diff → list_project_dependencies pipeline.
+  Skipped by default; enable with `GDEVELOP_MCP_INTEGRATION=1`.
+
+### Changed — npm publish readiness
+
+- `package.json` now ships:
+  - `keywords` for discoverability
+  - `homepage`, `bugs`, `repository`, `license` fields
+  - `main: "dist/index.js"`
+  - `publishConfig.access: "public"`
+  - `files` extended to include README, CHANGELOG, LICENSE
+- `.claude/skills/release-version/SKILL.md` documents the npm publish
+  workflow (dry-run, 2FA, token setup).
+
 ## [0.19.0] — 2026-05-20
 
 ### Added
