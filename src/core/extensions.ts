@@ -1,6 +1,7 @@
 import { readdirSync, existsSync, statSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { GDevelopInstall } from "./install.js";
+import { validateChildPath } from "./path-safety.js";
 
 export type ExtensionInfo = {
   name: string;
@@ -47,18 +48,17 @@ export function readExtensionFile(
   extensionName: string,
   fileName: string,
 ): string {
-  const safeName = extensionName.replace(/[^a-zA-Z0-9_-]/g, "");
-  const safeFile = fileName.replace(/\.\./g, "");
-  const fullPath = join(install.extensionsPath, safeName, safeFile);
-
-  if (!fullPath.startsWith(install.extensionsPath)) {
-    throw new Error(`Path traversal blocked: ${fileName}`);
-  }
-  if (!existsSync(fullPath)) {
+  if (!/^[A-Za-z0-9_-]+$/.test(extensionName)) {
     throw new Error(
-      `File not found: ${safeName}/${safeFile}. Use list_extensions to see available files.`,
+      `Invalid extension name "${extensionName}" — only [A-Za-z0-9_-] allowed.`,
     );
   }
-
+  const extDir = join(install.extensionsPath, extensionName);
+  const fullPath = validateChildPath(extDir, fileName);
+  if (!existsSync(fullPath)) {
+    throw new Error(
+      `File not found: ${extensionName}/${fileName}. Use list_extensions to see available files.`,
+    );
+  }
   return readFileSync(fullPath, "utf-8");
 }

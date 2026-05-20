@@ -3,9 +3,7 @@ import { join } from "node:path";
 import type { GDevelopInstall } from "./install.js";
 
 // ============================================================================
-// STATIC CATALOG — the most common built-in instructions
-// These come from C++ extensions (Sprite, BuiltinObject, etc.) and aren't
-// parseable from the JS extension files. Hand-curated from the GDevelop docs.
+// INSTRUCTION CATALOG — built entirely from GitHub-synced sources.
 // ============================================================================
 
 export type InstructionSpec = {
@@ -14,212 +12,8 @@ export type InstructionSpec = {
   description: string;
   kind: "action" | "condition" | "expression" | "strExpression";
   extension: string;
-  source: "static" | "dynamic-js" | "dynamic-cpp";
+  source: "dynamic-js" | "dynamic-cpp";
 };
-
-const STATIC_INSTRUCTIONS: InstructionSpec[] = [
-  // Keyboard
-  {
-    type: "KeyPressed",
-    fullName: "Key pressed",
-    description: "Check if a key is currently pressed.",
-    kind: "condition",
-    extension: "BuiltinKeyboard",
-    source: "static",
-  },
-  {
-    type: "KeyReleased",
-    fullName: "Key released",
-    description: "Check if a key was just released.",
-    kind: "condition",
-    extension: "BuiltinKeyboard",
-    source: "static",
-  },
-  {
-    type: "KeyFromTextPressed",
-    fullName: "Key pressed (text)",
-    description: "Check if a key (text identifier) is pressed.",
-    kind: "condition",
-    extension: "BuiltinKeyboard",
-    source: "static",
-  },
-  // Mouse / Touch
-  {
-    type: "SourisBouton",
-    fullName: "Mouse button pressed",
-    description: "Check if a mouse button is pressed.",
-    kind: "condition",
-    extension: "BuiltinMouse",
-    source: "static",
-  },
-  {
-    type: "MouseButtonReleased",
-    fullName: "Mouse button released",
-    description: "Check if a mouse button is released.",
-    kind: "condition",
-    extension: "BuiltinMouse",
-    source: "static",
-  },
-  // Object position
-  {
-    type: "MettreX",
-    fullName: "Set X position",
-    description: "Set the X position of an object.",
-    kind: "action",
-    extension: "BuiltinObject",
-    source: "static",
-  },
-  {
-    type: "MettreY",
-    fullName: "Set Y position",
-    description: "Set the Y position of an object.",
-    kind: "action",
-    extension: "BuiltinObject",
-    source: "static",
-  },
-  {
-    type: "MettreXY",
-    fullName: "Set position",
-    description: "Set both X and Y of an object.",
-    kind: "action",
-    extension: "BuiltinObject",
-    source: "static",
-  },
-  {
-    type: "PositionX",
-    fullName: "X position",
-    description: "Compare or read the X position of an object.",
-    kind: "condition",
-    extension: "BuiltinObject",
-    source: "static",
-  },
-  {
-    type: "PositionY",
-    fullName: "Y position",
-    description: "Compare or read the Y position of an object.",
-    kind: "condition",
-    extension: "BuiltinObject",
-    source: "static",
-  },
-  // Object lifecycle
-  {
-    type: "Create",
-    fullName: "Create an object",
-    description: "Create an instance of an object on a scene.",
-    kind: "action",
-    extension: "BuiltinObject",
-    source: "static",
-  },
-  {
-    type: "Delete",
-    fullName: "Delete an object",
-    description: "Delete (destroy) an object instance.",
-    kind: "action",
-    extension: "BuiltinObject",
-    source: "static",
-  },
-  // Variables
-  {
-    type: "ModVarScene",
-    fullName: "Modify scene variable",
-    description: "Modify a number scene variable.",
-    kind: "action",
-    extension: "BuiltinVariables",
-    source: "static",
-  },
-  {
-    type: "VarScene",
-    fullName: "Scene variable value",
-    description: "Compare the value of a scene variable.",
-    kind: "condition",
-    extension: "BuiltinVariables",
-    source: "static",
-  },
-  {
-    type: "ModVarGlobal",
-    fullName: "Modify global variable",
-    description: "Modify a number global variable.",
-    kind: "action",
-    extension: "BuiltinVariables",
-    source: "static",
-  },
-  // Scene control
-  {
-    type: "Scene",
-    fullName: "Change scene",
-    description: "Switch to another scene.",
-    kind: "action",
-    extension: "BuiltinScene",
-    source: "static",
-  },
-  {
-    type: "Quit",
-    fullName: "Quit the game",
-    description: "Quit the game (or close the preview).",
-    kind: "action",
-    extension: "BuiltinScene",
-    source: "static",
-  },
-  // Sprite
-  {
-    type: "ChangeAnimation",
-    fullName: "Change animation (sprite)",
-    description: "Change the animation of a Sprite by index.",
-    kind: "action",
-    extension: "Sprite",
-    source: "static",
-  },
-  {
-    type: "ChangeAnimationName",
-    fullName: "Change animation by name (sprite)",
-    description: "Change the animation of a Sprite using its name.",
-    kind: "action",
-    extension: "Sprite",
-    source: "static",
-  },
-  // Platformer behavior
-  {
-    type: "SimulateJumpKey",
-    fullName: "Simulate jump key (Platformer)",
-    description: "Simulate pressing the jump key for a Platformer character.",
-    kind: "action",
-    extension: "PlatformBehavior",
-    source: "static",
-  },
-  {
-    type: "SimulateLeftKey",
-    fullName: "Simulate left key (Platformer)",
-    description: "Simulate pressing the left key.",
-    kind: "action",
-    extension: "PlatformBehavior",
-    source: "static",
-  },
-  {
-    type: "SimulateRightKey",
-    fullName: "Simulate right key (Platformer)",
-    description: "Simulate pressing the right key.",
-    kind: "action",
-    extension: "PlatformBehavior",
-    source: "static",
-  },
-  {
-    type: "IsOnFloor",
-    fullName: "Is on floor (Platformer)",
-    description: "Check if a Platformer character is on a floor.",
-    kind: "condition",
-    extension: "PlatformBehavior",
-    source: "static",
-  },
-  // Collision
-  {
-    type: "CollisionNP",
-    fullName: "Collision",
-    description: "Detect collision between two objects.",
-    kind: "condition",
-    extension: "BuiltinObject",
-    source: "static",
-  },
-];
 
 // ============================================================================
 // DYNAMIC PARSING — JsExtension.js (JS extensions) + Extension.cpp (C++)
@@ -409,7 +203,7 @@ export function buildInstructionCatalog(
   install: GDevelopInstall,
 ): InstructionSpec[] {
   if (cached) return cached;
-  const all: InstructionSpec[] = [...STATIC_INSTRUCTIONS];
+  const all: InstructionSpec[] = [];
 
   // 1. Extensions/<Name>/JsExtension.js and Extensions/<Name>/Extension.cpp
   let extensionDirs: string[];

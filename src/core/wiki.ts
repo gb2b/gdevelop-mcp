@@ -19,7 +19,7 @@ function extractMainContent(html: string): string {
   ];
   for (const re of candidates) {
     const m = html.match(re);
-    if (m && m[1].length > 200) return m[1];
+    if (m) return m[1];
   }
   return html;
 }

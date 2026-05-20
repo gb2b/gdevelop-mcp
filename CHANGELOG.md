@@ -3,6 +3,51 @@
 All notable changes to this project are documented here. Versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.17.0] — 2026-05-20
+
+### Architecture / refactor
+
+- **Split `src/index.ts`** (1342 → 42 lines) into one `src/tools/*.ts`
+  file per family: install, discovery, extensions, catalog, editing,
+  safety, assets, examples, github, preview. Each exposes a
+  `register*Tools(server)` function. The entry point is now a thin
+  wiring file.
+- **Path traversal protection**: new `src/core/path-safety.ts` (`validateProjectPath`,
+  `validateChildPath`). Applied to every tool handler that accepts a
+  project path or extension filename.
+- **Removed `STATIC_INSTRUCTIONS`** hardcoded array (~25 entries).
+  The C++/JS dynamic parsers cover everything it had, with descriptions
+  sourced directly from the GDevelop repo. Catalog source field is now
+  `"dynamic-js" | "dynamic-cpp"` (no more `"static"`).
+
+### Tooling (.claude)
+
+- New rule `file-size.md`: src/\*.ts ≤ 500, src/index.ts ≤ 200, tests ≤ 600.
+- New rule `maintenance.md`: README/CHANGELOG sync discipline.
+- New skill `update-readme/SKILL.md`: checklist on adding/renaming/
+  removing a tool.
+- New skill `audit-repo/SKILL.md`: quick-audit playbook.
+- New agent `repo-reviewer.md`: deeper structural audit.
+- New hook `check-file-size.sh`: warns when src/test files exceed limits.
+- Updated `code-style.md` to reference the new size rule.
+- Updated `CLAUDE.md` to point at the new rules/skills.
+
+### Tests
+
+- +22 tests across 3 new files: `path-safety.test.ts`, `search.test.ts`,
+  `wiki.test.ts`. Total: 70 tests (was 48).
+
+### CI / release
+
+- New `.github/workflows/release.yml`: on tag `v*.*.*` push, builds and
+  creates a GitHub Release with the matching CHANGELOG section as notes.
+
+### Documentation
+
+- README rewritten: new tool tables (30 tools across 9 families), explicit
+  "Getting Started" walkthrough, comparison table with the built-in
+  GDevelop AI, accurate architecture diagram, updated badge count.
+
 ## [0.16.2] — 2026-05-20
 
 ### Fixed

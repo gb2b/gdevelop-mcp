@@ -5,53 +5,62 @@
 [![Node.js](https://img.shields.io/badge/node-%3E%3D18-brightgreen)](./package.json)
 [![MCP](https://img.shields.io/badge/MCP-server-blue)](https://modelcontextprotocol.io)
 
-An [MCP](https://modelcontextprotocol.io) server for
-[GDevelop](https://gdevelop.io) — gives any MCP-aware LLM agent
-(Claude Code, Cursor, etc.) the ability to introspect, validate, edit,
-preview, and enrich GDevelop projects.
+An [MCP](https://modelcontextprotocol.io) server that gives any MCP-aware
+LLM agent (Claude Code, Cursor, …) full agency over a
+[GDevelop](https://gdevelop.io) project: introspect, search, edit, preview.
 
-> 24 tools · 5 prompts · safe-by-default editing · runtime + static preview
+> **30 tools · 5 prompts · GitHub-canonical catalog · safe-by-default editing
+> · runtime + static preview**
 
 ## Why
 
-GDevelop has its own paid AI integration baked into the editor. This project
-is a free, open-source alternative that you can plug into any MCP-compatible
-agent and use to:
+GDevelop ships a paid AI assistant built into the editor. This project is
+the free, open-source alternative — and arguably a more powerful one, because
+the agent reads **directly from the canonical `4ian/GDevelop` GitHub repo**,
+not a curated snapshot.
 
-- **Inspect** a project (`inspect_project`, `validate_project`)
-- **Discover** what's available locally (`list_extensions`,
-  `list_dynamic_catalog`, `describe_object_schema`)
-- **Edit** projects atomically (`edit_project` with `dryRun`, backups, and
-  baseline validation)
-- **Browse public assets** (11 616 CC0 sprites/audio/tilemaps via
-  `search_assets`)
-- **Browse example projects** (281 MIT games via `list_examples`)
-- **Import assets** into your project (one, several, or a whole pack)
-- **Preview**: a fast canvas-based static render (`render_scene_static`,
-  <1s) **and** a real-runtime preview via gdexporter + puppeteer
-  (`preview_scene`, ~10s)
-- **Undo & diff** any edit via `list_backups`, `undo_last_edit`,
-  `diff_projects`
+What you can do with an agent that speaks gdevelop-mcp:
 
-All powered by a combination of:
+- **Build a game from a prompt.** "Adapt the official platformer example
+  into a 3-level platformer with my own hero sprite." The agent will use
+  `list_examples`, `read_github_source`, `search_assets`, `edit_project`
+  and `preview_scene` end-to-end.
+- **Inspect any GDevelop feature exhaustively.** ~1830 actions/conditions/
+  expressions, 11 event types, 47+ extensions, 13 resource types, 5
+  variable types — all extracted from the official source tree, not
+  hand-curated.
+- **Edit projects safely.** Every write goes through baseline validation,
+  atomic write-to-temp + rename, timestamped backups, semantic diff.
+  `undo_last_edit` is one tool call away.
+- **Get a real preview** of any scene without leaving the agent loop —
+  either a fast static render (`render_scene_static`, <1s) or a real-runtime
+  capture in headless Chromium (`preview_scene`, ~10s).
 
-- Your local GDevelop install (the TypeScript runtime sources shipped with the
-  desktop app — auto-detected on macOS / Linux / Windows)
-- GDevelop's public CDN for assets, examples, and filters
-- GitHub for full-source fallback (`read_github_source`, repos:
-  `4ian/GDevelop` and `GDevelopApp/GDevelop-examples`)
+### vs. GDevelop's built-in AI
+
+|                       | Built-in AI (paid)           | gdevelop-mcp (this project)                                                          |
+| --------------------- | ---------------------------- | ------------------------------------------------------------------------------------ |
+| Cost                  | Subscription (Silver / Gold) | Free, open source                                                                    |
+| Underlying model      | GDevelop's choice            | Whatever your MCP-compatible client supports                                         |
+| Tool surface          | Edit-only, opinionated       | 30 composable tools (introspect, search, edit, preview, asset store, examples, wiki) |
+| Asset store           | Yes, paid premium            | Yes, public CC0 + open-license packs                                                 |
+| Examples              | Yes, official                | Yes, all 281 official MIT examples                                                   |
+| Custom workflows      | Limited                      | Any agent prompt + tool chain                                                        |
+| Where the truth lives | Editor's snapshot            | `4ian/GDevelop` GitHub repo at the version you choose                                |
 
 ## Install
 
 ```bash
+git clone https://github.com/gb2b/gdevelop-mcp
+cd gdevelop-mcp
 npm install
 npm run build
 ```
 
 > Requires Node 18+. Puppeteer downloads Chromium (~170 MB) on first install.
 
-Then wire the MCP into your agent. For Claude Code, drop a `.mcp.json` in
-your project (or your home) with:
+Wire the MCP into your agent. For Claude Code, drop a `.mcp.json` in your
+project (or your home) with:
 
 ```json
 {
@@ -64,54 +73,105 @@ your project (or your home) with:
 }
 ```
 
-Restart your agent. The tools appear as `mcp__gdevelop__*`. The prompts
-appear as slash-commands (e.g. `/gdevelop:add-hero`).
+Restart your agent. Tools appear as `mcp__gdevelop__*`. Prompts appear as
+slash-commands (e.g. `/gdevelop:add-hero`).
+
+## Getting started
+
+Before tools that need GDevelop's source can do anything useful, fetch the
+canonical sources once:
+
+```text
+agent> sync_gdevelop_sources()
+  → downloads ~900 files (~14 MB) into ~/.cache/gdevelop-mcp/
+agent> gdevelop_overview()
+  → returns a 1-2K-token architecture map: read it to know where to dig
+agent> list_examples(query: "platformer")
+  → discover what's available
+agent> edit_project(path: "/path/to/game.json", operations: [...], dryRun: true)
+  → preview a change
+agent> preview_scene(projectPath: "/path/to/game.json")
+  → screenshot the actual rendered game
+```
 
 ## Tool reference
 
-### Introspection
+### Install & cache (5)
 
-| Tool                     | Purpose                                       |
-| ------------------------ | --------------------------------------------- |
-| `gdevelop_install_info`  | Which GDevelop install is detected            |
-| `list_extensions`        | All extensions in your local GDJS install     |
-| `list_object_types`      | Curated catalog of object types               |
-| `list_behavior_types`    | Curated catalog of behavior types             |
-| `describe_object_schema` | Schema + content example for a type           |
-| `list_dynamic_catalog`   | Auto-parsed catalog from your GDJS sources    |
-| `read_extension_source`  | Raw TS/JS source of any extension file        |
-| `read_github_source`     | Fetch any file from the GDevelop GitHub repos |
+| Tool                      | Purpose                                                            |
+| ------------------------- | ------------------------------------------------------------------ |
+| `gdevelop_install_info`   | Cache state + manifest + optional local desktop install info       |
+| `sync_gdevelop_sources`   | Download / refresh canonical sources from `4ian/GDevelop`          |
+| `check_cache_freshness`   | Compare cached ref against latest GDevelop release                 |
+| `check_runtime_freshness` | Compare bundled gdcore-tools (used by `preview_scene`) against npm |
+| `gdevelop_overview`       | Architectural map + tool-pointer map (read first to save tokens)   |
 
-### Editing & safety
+### Discovery (5)
 
-| Tool               | Purpose                                                                       |
-| ------------------ | ----------------------------------------------------------------------------- |
-| `inspect_project`  | Compact summary of a project                                                  |
-| `validate_project` | Structural + cross-reference validation                                       |
-| `edit_project`     | Atomic batch ops (`add_layout`/`add_object`/`add_instance`/`attach_behavior`) |
-| `list_backups`     | List `.bak-*` files for a project                                             |
-| `undo_last_edit`   | Restore the latest (or a specific) backup                                     |
-| `diff_projects`    | Semantic diff between two projects                                            |
+| Tool                   | Purpose                                                           |
+| ---------------------- | ----------------------------------------------------------------- |
+| `search_gdevelop_code` | Grep-style regex over the cache (path/ext filters, context lines) |
+| `describe_feature`     | Fetch a GDevelop wiki page as markdown                            |
+| `list_event_types`     | 11 built-in event types (Standard, ForEach, JsCode, …)            |
+| `list_resource_types`  | 13 resource kinds (image, audio, font, …)                         |
+| `list_variable_types`  | 5+ variable primitives                                            |
 
-### Assets
+### Extensions (4)
 
-| Tool                         | Purpose                                         |
-| ---------------------------- | ----------------------------------------------- |
-| `list_asset_packs`           | 129 official packs (Kenney, Foliage, etc.)      |
-| `list_asset_filters`         | Available tags                                  |
-| `search_assets`              | Search 11k+ public assets (CC0 by default)      |
-| `get_asset_details`          | Full GDevelop-ready object JSON                 |
-| `import_assets_into_project` | Download + insert one, several, or a whole pack |
+| Tool                    | Purpose                                                                      |
+| ----------------------- | ---------------------------------------------------------------------------- |
+| `list_extensions`       | All extensions in the cache                                                  |
+| `read_extension_source` | Raw .ts/.js/.cpp of any extension file                                       |
+| `list_dynamic_catalog`  | Auto-parsed objects/behaviors with field types                               |
+| `describe_extension`    | Bird's-eye view: actions + conditions + expressions + runtime files + README |
 
-### Examples
+### Catalog (5)
+
+| Tool                     | Purpose                                                        |
+| ------------------------ | -------------------------------------------------------------- |
+| `list_object_types`      | Curated object types                                           |
+| `list_behavior_types`    | Curated behavior types                                         |
+| `describe_object_schema` | Schema + content example for a type                            |
+| `list_instructions`      | ~1830 actions/conditions/expressions parsed live from C++ + JS |
+| `describe_instruction`   | All catalog entries matching a type (e.g. `SimulateJumpKey`)   |
+
+### Editing & safety (7)
+
+| Tool               | Purpose                                                                                     |
+| ------------------ | ------------------------------------------------------------------------------------------- |
+| `inspect_project`  | Compact human-readable project summary                                                      |
+| `validate_project` | Structural + cross-reference validation                                                     |
+| `edit_project`     | Atomic batch ops: layouts, objects, instances, behaviors, **events**, **custom extensions** |
+| `summarize_events` | Per-type breakdown + max depth of a scene's events tree                                     |
+| `list_backups`     | Backup files for a project                                                                  |
+| `undo_last_edit`   | Restore most recent backup (reversible — itself backed up first)                            |
+| `diff_projects`    | Semantic diff (added/removed/modified)                                                      |
+
+### Asset store (5)
+
+| Tool                         | Purpose                                                 |
+| ---------------------------- | ------------------------------------------------------- |
+| `list_asset_packs`           | 129+ public packs (Kenney, Foliage, Space Shooter, …)   |
+| `search_assets`              | 11k+ individual assets (sprites/tilemaps/audio/prefabs) |
+| `get_asset_details`          | Ready-to-insert GDevelop object JSON                    |
+| `list_asset_filters`         | Available tags & categories                             |
+| `import_assets_into_project` | Download + insert one, several, or a whole pack         |
+
+### Examples (3)
 
 | Tool                   | Purpose                                    |
 | ---------------------- | ------------------------------------------ |
 | `list_examples`        | 281 official MIT-licensed example projects |
-| `list_example_filters` | Available tags                             |
 | `get_example_details`  | Metadata + GitHub source path              |
+| `list_example_filters` | Available tags                             |
 
-### Preview
+### GitHub fallback (1)
+
+| Tool                 | Purpose                                                                    |
+| -------------------- | -------------------------------------------------------------------------- |
+| `read_github_source` | Fetch any file/dir from `4ian/GDevelop` or `GDevelopApp/GDevelop-examples` |
+
+### Preview (2)
 
 | Tool                  | Purpose                                 | Speed |
 | --------------------- | --------------------------------------- | ----- |
@@ -126,7 +186,7 @@ appear as slash-commands (e.g. `/gdevelop:add-hero`).
 | `add-hero`           | Find a CC0 hero sprite + wire the right movement behavior             |
 | `debug-project`      | Diagnose a broken project (validate / inspect / diff against backups) |
 | `browse-store`       | Curated asset search + import flow for a theme                        |
-| `safe-edit-flow`     | Enforce inspect → dryRun → apply → verify                             |
+| `safe-edit-flow`     | Force inspect → dryRun → apply → verify                               |
 
 ## Safety design
 
@@ -138,35 +198,57 @@ Every edit goes through:
 4. **Validation post-batch** — refuses to write an invalid result
 5. **Atomic write** — tempfile + rename (crash-safe)
 6. **Reversible** — `undo_last_edit` restores from any backup, itself backed up
+7. **Path validation** — every project-path tool input is normalized + null-byte-checked
 
 Combined with `dryRun: true` and `diff_projects`, you can preview, apply, and
-audit every change.
+audit every change. See [`.claude/rules/safety.md`](./.claude/rules/safety.md)
+for the full contract.
 
-## Project structure
+## Architecture
 
 ```
+~/.cache/gdevelop-mcp/
+└── ref-v5.6.269/          # canonical sources, mirrored from 4ian/GDevelop
+    ├── Core/              # C++ schemas + builtin extensions
+    ├── Extensions/        # individual extensions (C++ + JS + TS)
+    └── GDJS/              # JS runtime engine
+
 src/
-├── index.ts          # MCP server entry, tool registrations
-├── prompts.ts        # MCP prompts
-└── core/             # business logic (one concern per file)
+├── index.ts               # MCP server entry (~40 lines, thin)
+├── prompts.ts             # MCP prompts (slash commands)
+├── tools/                 # one file per tool family
+│   ├── install.ts         # cache management
+│   ├── discovery.ts       # search, wiki, event/resource/variable lists
+│   ├── extensions.ts      # extension introspection
+│   ├── catalog.ts         # objects, behaviors, instructions catalog
+│   ├── editing.ts         # validate, edit, inspect, summarize
+│   ├── safety.ts          # backups, undo, diff
+│   ├── assets.ts          # public asset store
+│   ├── examples.ts        # official example projects
+│   ├── github.ts          # GitHub fallback
+│   └── preview.ts         # runtime + static rendering
+└── core/                  # business logic (one concern per file)
 
-test/                 # vitest tests
-.claude/              # repo-level Claude Code configuration
-CLAUDE.md             # entry point for agents
+test/                      # vitest unit tests
+.claude/                   # repo-level Claude Code configuration
 ```
-
-See [`CONTRIBUTING.md`](./CONTRIBUTING.md) and
-[`CLAUDE.md`](./CLAUDE.md) for more.
 
 ## Limitations
 
 - Static preview can't render full 3D, animations, behaviors, shaders, or
-  custom effects. For that, use `preview_scene` (which runs the real GDJS
-  runtime in headless Chromium).
-- `gdexporter` is a third-party wrapper (by a core GDevelop contributor) and
-  is still beta. If it breaks on a new GDevelop version, file an issue.
-- The asset store API used here is the public CDN — no auth, no premium
-  assets, no private packs.
+  custom effects. For that, use `preview_scene`.
+- `gdexporter` (transitive dep, used only by `preview_scene`) is a third-party
+  wrapper by a core GDevelop contributor and still beta. If it breaks on a
+  new GDevelop version, file an issue.
+- The asset store CDN used here is the **public** one — no auth, no premium,
+  no private packs.
+- Wiki integration scrapes the page — depends on the wiki keeping its
+  current HTML structure.
+
+## Contributing
+
+See [`CONTRIBUTING.md`](./CONTRIBUTING.md). Repo conventions live in
+[`CLAUDE.md`](./CLAUDE.md) + [`.claude/`](./.claude/).
 
 ## License
 

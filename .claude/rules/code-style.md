@@ -16,6 +16,9 @@
 ## File-level
 
 - One concern per file. If a file mixes 3+ responsibilities, split it.
+- **Size limits**: src/*.ts ≤ 500 lines, src/index.ts ≤ 200, test/*.ts
+  ≤ 600. See [`.claude/rules/file-size.md`](./file-size.md) for the
+  splitting playbook.
 - Order inside a file: imports → types → constants → public functions →
   private helpers.
 - No comments explaining *what* the code does — names should do that. Only

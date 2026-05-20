@@ -32,7 +32,11 @@ test/                 # vitest unit tests
 | Add or update tests           | [`.claude/skills/add-test/SKILL.md`](./.claude/skills/add-test/SKILL.md)             |
 | Code style conventions        | [`.claude/rules/code-style.md`](./.claude/rules/code-style.md)                       |
 | Module structure rules        | [`.claude/rules/module-structure.md`](./.claude/rules/module-structure.md)           |
+| File-size limits + splitting  | [`.claude/rules/file-size.md`](./.claude/rules/file-size.md)                         |
+| README/CHANGELOG sync rules   | [`.claude/rules/maintenance.md`](./.claude/rules/maintenance.md)                     |
 | Test rules                    | [`.claude/rules/testing.md`](./.claude/rules/testing.md)                             |
+| Update README after tool add  | [`.claude/skills/update-readme/SKILL.md`](./.claude/skills/update-readme/SKILL.md)   |
+| Audit the repo health         | [`.claude/skills/audit-repo/SKILL.md`](./.claude/skills/audit-repo/SKILL.md)         |
 | Debug the MCP server          | [`.claude/skills/debug-mcp/SKILL.md`](./.claude/skills/debug-mcp/SKILL.md)           |
 
 ## Hard rules
