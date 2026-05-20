@@ -3,6 +3,43 @@
 All notable changes to this project are documented here. Versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.21.0] — 2026-05-20
+
+### Added — 8 new `edit_project` ops
+
+- **Variables** (`set_variable`, `remove_variable`) with four scopes:
+  `project`, `scene`, `object-scene`, `object-global`. Primitive types
+  only (number/string/boolean). Structure/array variables still need
+  `set_object_property`.
+- **Object groups** (`add_object_group`, `add_object_to_group`,
+  `remove_object_group`) — scene-scoped or global. Useful for events
+  that target "all enemies" rather than a specific object.
+- **Resources** (`add_resource`) — register an arbitrary file (image /
+  audio / font / json / video / bitmapFont / tilemap / tileset /
+  model3D / atlas / spine) as a project resource.
+- **Externals** (`add_external_events`, `add_external_layout`) — create
+  reusable event blocks and external layouts. Both accept an optional
+  `associatedScene`.
+
+### Added — polish
+
+- **Coverage gate in CI.** `pnpm test:coverage` now runs with v8
+  provider and thresholds (statements 70 / branches 60 / functions 70 /
+  lines 75). Report uploaded as a CI artifact + summarized in PR
+  comments via `davelosert/vitest-coverage-report-action@v2`.
+- **`test/mcp-smoke.test.ts`** — boots the built server over real
+  stdio, runs the MCP handshake, lists tools + prompts, asserts the
+  presence of 37 core tools. Catches wiring regressions before release.
+- **`ONBOARDING.md`** — 30-minute onboarding for new contributors:
+  bootstrap, layout, day-to-day commands, architecture rules,
+  step-by-step recipes for adding tools / edit ops / releases.
+
+### Internal
+
+- `src/core/edit-misc-ops.ts` — new home for the 8 misc ops (343 lines).
+- `src/core/edit-summary.ts` — extracted from `edit.ts` (254 lines).
+  `edit.ts` is back to 394 lines, well under the 500-line rule.
+
 ## [0.20.0] — 2026-05-20
 
 ### Added — instruction catalog: receiver + parameters

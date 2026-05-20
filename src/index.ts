@@ -24,7 +24,7 @@ import { registerTemplatesTools } from "./tools/templates.js";
 
 const server = new McpServer({
   name: "gdevelop-mcp",
-  version: "0.20.0",
+  version: "0.21.0",
 });
 
 registerInstallTools(server);

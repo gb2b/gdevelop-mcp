@@ -47,11 +47,23 @@ jobs:
       - name: Format check
         run: pnpm format:check
 
-      - name: Tests
-        run: pnpm test
-
-      - name: Coverage
+      - name: Tests with coverage
         run: pnpm test:coverage
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 14
+
+      - name: Coverage summary in PR
+        if: github.event_name == 'pull_request'
+        uses: davelosert/vitest-coverage-report-action@v2
+        with:
+          json-summary-path: coverage/coverage-summary.json
+          json-final-path: coverage/coverage-final.json
         continue-on-error: true
 
       - name: Build

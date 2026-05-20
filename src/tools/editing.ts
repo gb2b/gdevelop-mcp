@@ -83,6 +83,19 @@ Each operation is one of:
 - {op: "add_events_based_behavior", extension: string, name: string, ...}
 - {op: "add_extension_function", extension: string, parent?: ..., name: string, functionType: ...}
 - {op: "add_extension_property", extension: string, parent: ..., parentName: string, property: ...}
+- {op: "remove_layout", name: string}
+- {op: "remove_object", scope?: "scene"|"global", scene?: string, name: string, cascadeInstances?: bool}
+- {op: "remove_instance", scene: string, index?: number, persistentUuid?: string}
+- {op: "rename_object", scope?: "scene"|"global", scene?: string, oldName: string, newName: string, cascadeReferences?: bool}
+- {op: "set_object_property", scope?: "scene"|"global", scene?: string, objectName: string, path: string, value: any}
+- {op: "set_variable", scope: "project"|"scene"|"object-scene"|"object-global", scene?: string, objectName?: string, name: string, type: "number"|"string"|"boolean", value: any}
+- {op: "remove_variable", scope: "project"|"scene"|"object-scene"|"object-global", scene?: string, objectName?: string, name: string}
+- {op: "add_object_group", scope?: "scene"|"global", scene?: string, name: string, objects?: string[]}
+- {op: "add_object_to_group", scope?: "scene"|"global", scene?: string, group: string, objectName: string}
+- {op: "remove_object_group", scope?: "scene"|"global", scene?: string, name: string}
+- {op: "add_resource", name: string, file: string, kind: "image"|"audio"|"font"|"json"|"video"|"bitmapFont"|"tilemap"|"tileset"|"model3D"|"atlas"|"spine", metadata?: object}
+- {op: "add_external_events", name: string, associatedScene?: string}
+- {op: "add_external_layout", name: string, associatedScene?: string}
 
 RECOMMENDED FLOW:
 1. inspect_project(path) — see the current state

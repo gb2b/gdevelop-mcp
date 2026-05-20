@@ -1,6 +1,6 @@
 {
   "name": "gdevelop-mcp",
-  "version": "0.20.0",
+  "version": "0.21.0",
   "description": "MCP server for GDevelop project introspection, editing, and preview — backed by the canonical 4ian/GDevelop GitHub repo.",
   "keywords": [
     "mcp",
