@@ -3,6 +3,44 @@
 All notable changes to this project are documented here. Versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.18.0] — 2026-05-20
+
+### Added — 5 new edit_project ops
+
+- **`remove_layout`** — delete a scene; `firstLayout` reassigned to the
+  first remaining layout when needed.
+- **`remove_object`** — delete a scene-scoped or global object. Cascades
+  to all instances by default (`cascadeInstances: true`); refuses with
+  a clear error when instances exist and cascade is off.
+- **`remove_instance`** — delete an instance by index or by
+  `persistentUuid`.
+- **`rename_object`** — rename an object and propagate the new name into
+  all matching instances + event parameters (substring-equal). Returns
+  counts. `cascadeReferences: false` opts out of the propagation.
+- **`set_object_property`** — set a property on an object via dot-path
+  (e.g. `content.text`, `tags`). Creates intermediate objects when the
+  path traverses missing keys.
+
+### Added — 2 new introspection tools
+
+- **`find_in_events`** — regex search across a scene's (or all scenes')
+  events tree. Looks inside condition/action types and parameters,
+  comments, group names, JsCode bodies and Link targets. Returns
+  `{scene, path, location, text}` hits. Useful for refactoring audit
+  ("where is variable X used?").
+- **`list_project_dependencies`** — inventory of object types, behavior
+  types, resource kinds, instruction types referenced in events, custom
+  extensions, scene names. Run BEFORE editing or to migrate to a new
+  GDevelop version.
+
+### Internal
+
+- Split `src/core/edit.ts` (721 lines → 494) into two helper modules to
+  respect the 500-line file-size rule:
+  - `edit-add-ops.ts` — schemas + apply functions for the four add ops.
+  - `edit-remove-rename.ts` — schemas + apply for the five removal/
+    rename/set-property ops.
+
 ## [0.17.2] — 2026-05-20
 
 ### Added

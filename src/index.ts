@@ -23,7 +23,7 @@ import { registerPreviewTools } from "./tools/preview.js";
 
 const server = new McpServer({
   name: "gdevelop-mcp",
-  version: "0.17.0",
+  version: "0.18.0",
 });
 
 registerInstallTools(server);

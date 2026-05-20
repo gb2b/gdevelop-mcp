@@ -5,6 +5,10 @@ import { validateProjectData } from "../core/validation.js";
 import { editProject, EditOpSchema } from "../core/edit.js";
 import { summarizeEvents } from "../core/events.js";
 import { validateProjectPath } from "../core/path-safety.js";
+import {
+  findInEvents,
+  listProjectDependencies,
+} from "../core/project-introspect.js";
 import { textResult, errorResult } from "./shared.js";
 
 export function registerEditingTools(server: McpServer): void {
@@ -189,6 +193,50 @@ By default: baseline is validated first (refuses to edit a broken project), a ti
           resources: project.resources.resources.length,
           customExtensions: project.eventsFunctionsExtensions.length,
         });
+      } catch (err) {
+        return errorResult((err as Error).message);
+      }
+    },
+  );
+
+  server.tool(
+    "find_in_events",
+    "Regex search across a scene's (or all scenes') events tree. Looks inside conditions, actions, parameters, comments, group names, JsCode bodies and Link targets. Returns scene + path (event indices) + location + matched text. Useful for refactoring (e.g. 'where is variable X used?') and audit.",
+    {
+      projectPath: z.string(),
+      query: z.string().describe("Regex pattern"),
+      flags: z.string().optional().describe("Regex flags (default 'i')"),
+      scene: z
+        .string()
+        .optional()
+        .describe("Restrict to a single scene. If omitted, all scenes."),
+      maxResults: z.number().int().positive().max(500).optional(),
+    },
+    async ({ projectPath, query, flags, scene, maxResults }) => {
+      try {
+        const result = findInEvents(projectPath, {
+          query,
+          flags,
+          scene,
+          maxResults,
+        });
+        return textResult(result);
+      } catch (err) {
+        return errorResult((err as Error).message);
+      }
+    },
+  );
+
+  server.tool(
+    "list_project_dependencies",
+    "Inventory of what a GDevelop project uses: object types, behavior types, resource kinds, instruction types (actions/conditions referenced in events), custom extensions, scene names. Run BEFORE editing a project to know which extensions you need to keep available, or to migrate to a new GDevelop version.",
+    {
+      path: z.string().describe("Absolute path to the GDevelop .json"),
+    },
+    async ({ path }) => {
+      try {
+        const deps = listProjectDependencies(path);
+        return textResult(deps);
       } catch (err) {
         return errorResult((err as Error).message);
       }

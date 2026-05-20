@@ -2,7 +2,16 @@ import { readFileSync, writeFileSync, renameSync, copyFileSync } from "node:fs";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { validateProjectData, type ValidationIssue } from "./validation.js";
-import { findObjectType } from "./catalog-static.js";
+import {
+  AddLayoutOpSchema,
+  AddObjectOpSchema,
+  AddInstanceOpSchema,
+  AttachBehaviorOpSchema,
+  applyAddLayout,
+  applyAddObject,
+  applyAddInstance,
+  applyAttachBehavior,
+} from "./edit-add-ops.js";
 import {
   AddEventOpSchema,
   RemoveEventOpSchema,
@@ -26,57 +35,24 @@ import {
   applyAddExtensionFunction,
   applyAddExtensionProperty,
 } from "./efe.js";
-
-const AddLayoutOp = z.object({
-  op: z.literal("add_layout"),
-  name: z.string().min(1),
-  setAsFirst: z.boolean().optional(),
-});
-
-const AddObjectOp = z.object({
-  op: z.literal("add_object"),
-  type: z
-    .string()
-    .min(1)
-    .describe("Internal type, e.g. 'Sprite' or 'TextObject::Text'"),
-  name: z.string().min(1),
-  scope: z.enum(["scene", "global"]).optional().default("scene"),
-  scene: z.string().optional(),
-  content: z.record(z.string(), z.unknown()).optional(),
-  variables: z.array(z.unknown()).optional(),
-  behaviors: z.array(z.unknown()).optional(),
-  tags: z.string().optional(),
-});
-
-const AddInstanceOp = z.object({
-  op: z.literal("add_instance"),
-  scene: z.string().min(1),
-  objectName: z.string().min(1),
-  x: z.number(),
-  y: z.number(),
-  layer: z.string().optional().default(""),
-  zOrder: z.number().int().optional().default(1),
-  angle: z.number().optional().default(0),
-  customSize: z.boolean().optional().default(false),
-  width: z.number().optional().default(0),
-  height: z.number().optional().default(0),
-});
-
-const AttachBehaviorOp = z.object({
-  op: z.literal("attach_behavior"),
-  objectName: z.string().min(1),
-  scope: z.enum(["scene", "global"]).optional().default("scene"),
-  scene: z.string().optional(),
-  type: z.string().min(1),
-  name: z.string().optional(),
-  properties: z.record(z.string(), z.unknown()).optional(),
-});
+import {
+  RemoveLayoutOpSchema,
+  RemoveObjectOpSchema,
+  RemoveInstanceOpSchema,
+  RenameObjectOpSchema,
+  SetObjectPropertyOpSchema,
+  applyRemoveLayout,
+  applyRemoveObject,
+  applyRemoveInstance,
+  applyRenameObject,
+  applySetObjectProperty,
+} from "./edit-remove-rename.js";
 
 export const EditOpSchema = z.discriminatedUnion("op", [
-  AddLayoutOp,
-  AddObjectOp,
-  AddInstanceOp,
-  AttachBehaviorOp,
+  AddLayoutOpSchema,
+  AddObjectOpSchema,
+  AddInstanceOpSchema,
+  AttachBehaviorOpSchema,
   AddEventOpSchema,
   RemoveEventOpSchema,
   MoveEventOpSchema,
@@ -85,6 +61,11 @@ export const EditOpSchema = z.discriminatedUnion("op", [
   AddEventsBasedBehaviorOpSchema,
   AddExtensionFunctionOpSchema,
   AddExtensionPropertyOpSchema,
+  RemoveLayoutOpSchema,
+  RemoveObjectOpSchema,
+  RemoveInstanceOpSchema,
+  RenameObjectOpSchema,
+  SetObjectPropertyOpSchema,
 ]);
 export type EditOp = z.infer<typeof EditOpSchema>;
 
@@ -99,197 +80,6 @@ type ProjectShape = Record<string, unknown> & {
   >;
   objects: unknown[];
 };
-
-function defaultLayer() {
-  return {
-    ambientLightColorB: 32,
-    ambientLightColorG: 32,
-    ambientLightColorR: 32,
-    camera3DFarPlaneDistance: 10000,
-    camera3DFieldOfView: 45,
-    camera3DNearPlaneDistance: 0.1,
-    followBaseLayerCamera: false,
-    isLightingLayer: false,
-    isLocked: false,
-    name: "",
-    renderingType: "",
-    visibility: true,
-    cameras: [
-      {
-        defaultSize: true,
-        defaultViewport: true,
-        height: 0,
-        viewportBottom: 1,
-        viewportLeft: 0,
-        viewportRight: 1,
-        viewportTop: 0,
-        width: 0,
-      },
-    ],
-    effects: [],
-  };
-}
-
-function defaultLayoutTemplate(name: string) {
-  return {
-    b: 209,
-    disableInputWhenNotFocused: true,
-    mangledName: name,
-    name,
-    r: 209,
-    standardSortMethod: true,
-    stopSoundsOnStartup: true,
-    title: "",
-    v: 209,
-    uiSettings: {},
-    variables: [],
-    instances: [],
-    objects: [],
-    objectsFolderStructure: { folderName: "__ROOT" },
-    events: [],
-    layers: [defaultLayer()],
-    behaviorsSharedData: [],
-    usedResources: [],
-  };
-}
-
-function applyAddLayout(
-  project: ProjectShape,
-  op: z.infer<typeof AddLayoutOp>,
-) {
-  if (project.layouts.some((l) => l.name === op.name)) {
-    throw new Error(`Layout "${op.name}" already exists.`);
-  }
-  project.layouts.push(defaultLayoutTemplate(op.name));
-  if (op.setAsFirst || !project.firstLayout) {
-    project.firstLayout = op.name;
-  }
-}
-
-function applyAddObject(
-  project: ProjectShape,
-  op: z.infer<typeof AddObjectOp>,
-) {
-  const scope = op.scope ?? "scene";
-  const known = findObjectType(op.type);
-  const defaultContent =
-    (known?.contentExample as Record<string, unknown> | undefined) ?? {};
-
-  const objectEntry: Record<string, unknown> = {
-    name: op.name,
-    type: op.type,
-    tags: op.tags ?? "",
-    variables: op.variables ?? [],
-    behaviors: op.behaviors ?? [],
-    effects: [],
-    ...defaultContent,
-    ...(op.content ?? {}),
-  };
-
-  if (scope === "global") {
-    if (
-      (project.objects as Array<{ name: string }>).some(
-        (o) => o.name === op.name,
-      )
-    ) {
-      throw new Error(`Global object "${op.name}" already exists.`);
-    }
-    project.objects.push(objectEntry);
-  } else {
-    if (!op.scene) {
-      throw new Error(`add_object with scope="scene" requires a scene name.`);
-    }
-    const layout = project.layouts.find((l) => l.name === op.scene);
-    if (!layout) throw new Error(`Layout "${op.scene}" not found.`);
-    if (
-      (layout.objects as Array<{ name: string }>).some(
-        (o) => o.name === op.name,
-      )
-    ) {
-      throw new Error(
-        `Object "${op.name}" already exists in scene "${op.scene}".`,
-      );
-    }
-    layout.objects.push(objectEntry);
-  }
-}
-
-function applyAddInstance(
-  project: ProjectShape,
-  op: z.infer<typeof AddInstanceOp>,
-) {
-  const layout = project.layouts.find((l) => l.name === op.scene);
-  if (!layout) throw new Error(`Layout "${op.scene}" not found.`);
-  const layoutObjects = layout.objects as Array<{ name: string }>;
-  const globalObjects = project.objects as Array<{ name: string }>;
-  if (
-    !layoutObjects.some((o) => o.name === op.objectName) &&
-    !globalObjects.some((o) => o.name === op.objectName)
-  ) {
-    throw new Error(
-      `Object "${op.objectName}" not found in scene "${op.scene}" or globally.`,
-    );
-  }
-
-  layout.instances.push({
-    angle: op.angle ?? 0,
-    customSize: op.customSize ?? false,
-    height: op.height ?? 0,
-    layer: op.layer ?? "",
-    locked: false,
-    name: op.objectName,
-    persistentUuid: randomUUID(),
-    width: op.width ?? 0,
-    x: op.x,
-    y: op.y,
-    zOrder: op.zOrder ?? 1,
-    numberProperties: [],
-    stringProperties: [],
-    initialVariables: [],
-  });
-}
-
-function applyAttachBehavior(
-  project: ProjectShape,
-  op: z.infer<typeof AttachBehaviorOp>,
-) {
-  const scope = op.scope ?? "scene";
-  let target: Record<string, unknown> | undefined;
-
-  if (scope === "global") {
-    target = (project.objects as Record<string, unknown>[]).find(
-      (o) => o["name"] === op.objectName,
-    );
-  } else {
-    if (!op.scene)
-      throw new Error(`attach_behavior scope="scene" requires a scene name.`);
-    const layout = project.layouts.find((l) => l.name === op.scene);
-    if (!layout) throw new Error(`Layout "${op.scene}" not found.`);
-    target = (layout.objects as Record<string, unknown>[]).find(
-      (o) => o["name"] === op.objectName,
-    );
-  }
-
-  if (!target) {
-    throw new Error(`Object "${op.objectName}" not found (scope=${scope}).`);
-  }
-
-  const behaviors =
-    (target["behaviors"] as Array<Record<string, unknown>>) ?? [];
-  const behaviorName = op.name ?? op.type.split("::").pop() ?? op.type;
-  if (behaviors.some((b) => b["name"] === behaviorName)) {
-    throw new Error(
-      `Behavior "${behaviorName}" already attached to "${op.objectName}".`,
-    );
-  }
-
-  behaviors.push({
-    name: behaviorName,
-    type: op.type,
-    ...(op.properties ?? {}),
-  });
-  target["behaviors"] = behaviors;
-}
 
 export type EditSummary = {
   layoutsAdded: string[];
@@ -323,6 +113,25 @@ export type EditSummary = {
     parent: string;
     parentName: string;
     name: string;
+  }>;
+  layoutsRemoved: string[];
+  objectsRemoved: Array<{
+    scope: "scene" | "global";
+    scene?: string;
+    name: string;
+  }>;
+  instancesRemoved: number;
+  objectsRenamed: Array<{
+    scope: "scene" | "global";
+    scene?: string;
+    oldName: string;
+    newName: string;
+  }>;
+  propertiesSet: Array<{
+    scope: "scene" | "global";
+    scene?: string;
+    objectName: string;
+    path: string;
   }>;
 };
 
@@ -360,6 +169,11 @@ function emptySummary(): EditSummary {
     eventsBasedBehaviorsAdded: [],
     extensionFunctionsAdded: [],
     extensionPropertiesAdded: [],
+    layoutsRemoved: [],
+    objectsRemoved: [],
+    instancesRemoved: 0,
+    objectsRenamed: [],
+    propertiesSet: [],
   };
 }
 
@@ -432,6 +246,35 @@ function recordOp(summary: EditSummary, op: EditOp): void {
         parent: op.parent,
         parentName: op.parentName,
         name: op.property.name,
+      });
+      break;
+    case "remove_layout":
+      summary.layoutsRemoved.push(op.name);
+      break;
+    case "remove_object":
+      summary.objectsRemoved.push({
+        scope: op.scope ?? "scene",
+        scene: op.scene,
+        name: op.name,
+      });
+      break;
+    case "remove_instance":
+      summary.instancesRemoved++;
+      break;
+    case "rename_object":
+      summary.objectsRenamed.push({
+        scope: op.scope ?? "scene",
+        scene: op.scene,
+        oldName: op.oldName,
+        newName: op.newName,
+      });
+      break;
+    case "set_object_property":
+      summary.propertiesSet.push({
+        scope: op.scope ?? "scene",
+        scene: op.scene,
+        objectName: op.objectName,
+        path: op.path,
       });
       break;
   }
@@ -549,6 +392,36 @@ export async function editProject(
             project as unknown as Parameters<
               typeof applyAddExtensionProperty
             >[0],
+            op,
+          );
+          break;
+        case "remove_layout":
+          applyRemoveLayout(
+            project as unknown as Parameters<typeof applyRemoveLayout>[0],
+            op,
+          );
+          break;
+        case "remove_object":
+          applyRemoveObject(
+            project as unknown as Parameters<typeof applyRemoveObject>[0],
+            op,
+          );
+          break;
+        case "remove_instance":
+          applyRemoveInstance(
+            project as unknown as Parameters<typeof applyRemoveInstance>[0],
+            op,
+          );
+          break;
+        case "rename_object":
+          applyRenameObject(
+            project as unknown as Parameters<typeof applyRenameObject>[0],
+            op,
+          );
+          break;
+        case "set_object_property":
+          applySetObjectProperty(
+            project as unknown as Parameters<typeof applySetObjectProperty>[0],
             op,
           );
           break;
