@@ -17,6 +17,7 @@ function makeProject(): string {
     behaviors: [],
     effects: [],
     tags: "",
+    animations: [],
   });
   const layout = (project.layouts as Array<Record<string, unknown>>)[0];
   layout.objects = [
@@ -27,6 +28,7 @@ function makeProject(): string {
       behaviors: [],
       effects: [],
       tags: "",
+      animations: [],
     },
   ];
   layout.instances = [

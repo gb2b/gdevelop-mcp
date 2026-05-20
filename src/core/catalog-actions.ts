@@ -1,10 +1,17 @@
 import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import type { GDevelopInstall } from "./install.js";
+import {
+  parseExtensionSource,
+  type ParamSpec,
+  type ParsedInstruction,
+} from "./catalog-parsers.js";
 
 // ============================================================================
 // INSTRUCTION CATALOG — built entirely from GitHub-synced sources.
 // ============================================================================
+
+export type ReceiverKind = "extension" | "object" | "behavior" | "unknown";
 
 export type InstructionSpec = {
   type: string;
@@ -13,39 +20,33 @@ export type InstructionSpec = {
   kind: "action" | "condition" | "expression" | "strExpression";
   extension: string;
   source: "dynamic-js" | "dynamic-cpp";
+  /** Raw identifier preceding `.AddXxx` in the source (e.g. "extension", "obj", "aut"). */
+  receiver?: string;
+  /** Normalized receiver — "extension" | "object" | "behavior" | "unknown". */
+  receiverKind: ReceiverKind;
+  parameters: ParamSpec[];
 };
 
-// ============================================================================
-// DYNAMIC PARSING — JsExtension.js (JS extensions) + Extension.cpp (C++)
-// ============================================================================
+export type { ParamSpec };
 
-// JS pattern: extension.addAction("Name", ...)
-const JS_ADD_ACTION_RE =
-  /\.addAction\s*\(\s*['"]([A-Za-z0-9_]+)['"](?:\s*,\s*['"]([^'"]*)['"])?(?:\s*,\s*['"]([^'"]*)['"])?/g;
-const JS_ADD_CONDITION_RE =
-  /\.addCondition\s*\(\s*['"]([A-Za-z0-9_]+)['"](?:\s*,\s*['"]([^'"]*)['"])?(?:\s*,\s*['"]([^'"]*)['"])?/g;
-const JS_ADD_EXPRESSION_RE =
-  /\.addExpression\s*\(\s*['"]([A-Za-z0-9_]+)['"](?:\s*,\s*['"]([^'"]*)['"])?(?:\s*,\s*['"]([^'"]*)['"])?/g;
-const JS_ADD_STR_EXPRESSION_RE =
-  /\.addStrExpression\s*\(\s*['"]([A-Za-z0-9_]+)['"](?:\s*,\s*['"]([^'"]*)['"])?(?:\s*,\s*['"]([^'"]*)['"])?/g;
+const RECEIVER_KIND_BY_TOKEN: Record<string, ReceiverKind> = {
+  extension: "extension",
+  obj: "object",
+  object: "object",
+  objectMetadata: "object",
+  aut: "behavior",
+  behavior: "behavior",
+  behaviorMetadata: "behavior",
+};
 
-// C++ pattern: extension.AddAction("Name", _("Full"), _("Desc"), _("Sentence"), _("Group"), "icon", "smallicon")
-// Captures name (always plain string), fullName and description (i18n-wrapped, optional)
-const CPP_ADD_ACTION_RE =
-  /\.AddAction\s*\(\s*"([A-Za-z0-9_]+)"(?:\s*,\s*_\(\s*"([^"]*)"\s*\))?(?:\s*,\s*_\(\s*"([^"]*)"\s*\))?/g;
-const CPP_ADD_CONDITION_RE =
-  /\.AddCondition\s*\(\s*"([A-Za-z0-9_]+)"(?:\s*,\s*_\(\s*"([^"]*)"\s*\))?(?:\s*,\s*_\(\s*"([^"]*)"\s*\))?/g;
-const CPP_ADD_EXPRESSION_RE =
-  /\.AddExpression\s*\(\s*"([A-Za-z0-9_]+)"(?:\s*,\s*_\(\s*"([^"]*)"\s*\))?(?:\s*,\s*_\(\s*"([^"]*)"\s*\))?/g;
-const CPP_ADD_STR_EXPRESSION_RE =
-  /\.AddStrExpression\s*\(\s*"([A-Za-z0-9_]+)"(?:\s*,\s*_\(\s*"([^"]*)"\s*\))?(?:\s*,\s*_\(\s*"([^"]*)"\s*\))?/g;
-
-// Some C++ files use AddExpressionAndCondition / AddDuplicatedAction / etc.
-// Capture commonly-named variants as actions/conditions by name.
-const CPP_ADD_EXPR_AND_COND_RE =
-  /\.AddExpressionAndCondition(?:For[A-Za-z]+)?\s*\(\s*"([A-Za-z0-9_]+)"\s*,\s*"([A-Za-z0-9_]+)"(?:\s*,\s*_\(\s*"([^"]*)"\s*\))?/g;
-const CPP_ADD_SCOPED_BEHAVIOR_RE =
-  /\.AddScopedAction\s*\(\s*"([A-Za-z0-9_]+)"(?:\s*,\s*_\(\s*"([^"]*)"\s*\))?(?:\s*,\s*_\(\s*"([^"]*)"\s*\))?/g;
+function classifyReceiver(token: string | undefined): ReceiverKind {
+  if (!token) return "unknown";
+  const known = RECEIVER_KIND_BY_TOKEN[token];
+  if (known) return known;
+  if (/Object$/.test(token) || /Obj$/.test(token)) return "object";
+  if (/Behavior$/.test(token) || /^aut/.test(token)) return "behavior";
+  return "unknown";
+}
 
 function readSafe(path: string): string | null {
   try {
@@ -55,141 +56,39 @@ function readSafe(path: string): string | null {
   }
 }
 
-type Match = { name: string; fullName?: string; description?: string };
-
-function extractTriplets(src: string, re: RegExp): Match[] {
-  const out: Match[] = [];
-  for (const m of src.matchAll(re)) {
-    out.push({
-      name: m[1],
-      fullName: m[2] || undefined,
-      description: m[3] || undefined,
-    });
-  }
-  return out;
-}
-
 let cached: InstructionSpec[] | null = null;
 
-function pushAll(
-  all: InstructionSpec[],
-  matches: Match[],
-  kind: InstructionSpec["kind"],
+function toSpec(
+  parsed: ParsedInstruction,
   extension: string,
   source: InstructionSpec["source"],
-): void {
-  for (const m of matches) {
-    all.push({
-      type: m.name,
-      fullName: m.fullName ?? m.name,
-      description: m.description ?? "",
-      kind,
-      extension,
-      source,
-    });
-  }
+): InstructionSpec {
+  return {
+    type: parsed.type,
+    fullName: parsed.fullName ?? parsed.type,
+    description: parsed.description ?? "",
+    kind: parsed.kind,
+    extension,
+    source,
+    receiver: parsed.receiver,
+    receiverKind: classifyReceiver(parsed.receiver),
+    parameters: parsed.parameters,
+  };
 }
 
-function parseJsExtension(
+function ingest(
   all: InstructionSpec[],
-  extension: string,
   src: string,
-): void {
-  pushAll(
-    all,
-    extractTriplets(src, JS_ADD_ACTION_RE),
-    "action",
-    extension,
-    "dynamic-js",
-  );
-  pushAll(
-    all,
-    extractTriplets(src, JS_ADD_CONDITION_RE),
-    "condition",
-    extension,
-    "dynamic-js",
-  );
-  pushAll(
-    all,
-    extractTriplets(src, JS_ADD_EXPRESSION_RE),
-    "expression",
-    extension,
-    "dynamic-js",
-  );
-  pushAll(
-    all,
-    extractTriplets(src, JS_ADD_STR_EXPRESSION_RE),
-    "strExpression",
-    extension,
-    "dynamic-js",
-  );
-}
-
-function parseCppExtension(
-  all: InstructionSpec[],
   extension: string,
-  src: string,
+  language: "cpp" | "js",
 ): void {
-  pushAll(
-    all,
-    extractTriplets(src, CPP_ADD_ACTION_RE),
-    "action",
-    extension,
-    "dynamic-cpp",
-  );
-  pushAll(
-    all,
-    extractTriplets(src, CPP_ADD_CONDITION_RE),
-    "condition",
-    extension,
-    "dynamic-cpp",
-  );
-  pushAll(
-    all,
-    extractTriplets(src, CPP_ADD_EXPRESSION_RE),
-    "expression",
-    extension,
-    "dynamic-cpp",
-  );
-  pushAll(
-    all,
-    extractTriplets(src, CPP_ADD_STR_EXPRESSION_RE),
-    "strExpression",
-    extension,
-    "dynamic-cpp",
-  );
-  // AddExpressionAndCondition: register as both kinds
-  for (const m of src.matchAll(CPP_ADD_EXPR_AND_COND_RE)) {
-    const name = m[2] || m[1];
-    const desc = m[3] || "";
-    all.push({
-      type: name,
-      fullName: name,
-      description: desc,
-      kind: "expression",
-      extension,
-      source: "dynamic-cpp",
-    });
-    all.push({
-      type: name,
-      fullName: name,
-      description: desc,
-      kind: "condition",
-      extension,
-      source: "dynamic-cpp",
-    });
-  }
-  pushAll(
-    all,
-    extractTriplets(src, CPP_ADD_SCOPED_BEHAVIOR_RE),
-    "action",
-    extension,
-    "dynamic-cpp",
-  );
+  const parsed = parseExtensionSource(src, { language });
+  const source: InstructionSpec["source"] =
+    language === "js" ? "dynamic-js" : "dynamic-cpp";
+  for (const p of parsed) all.push(toSpec(p, extension, source));
 }
 
 function walkCppExtensionFiles(extDir: string): string[] {
-  // Look for Extension.cpp + AllBuiltin*.cpp + <Name>Extension.cpp variants
   try {
     return readdirSync(extDir)
       .filter((f) => /\.cpp$/.test(f))
@@ -205,7 +104,6 @@ export function buildInstructionCatalog(
   if (cached) return cached;
   const all: InstructionSpec[] = [];
 
-  // 1. Extensions/<Name>/JsExtension.js and Extensions/<Name>/Extension.cpp
   let extensionDirs: string[];
   try {
     extensionDirs = readdirSync(install.extensionsPath, { withFileTypes: true })
@@ -218,22 +116,17 @@ export function buildInstructionCatalog(
 
   for (const ext of extensionDirs) {
     const extDir = join(install.extensionsPath, ext);
-    // JS extensions
     const jsExtensionPath = join(extDir, "JsExtension.js");
     if (existsSync(jsExtensionPath)) {
       const src = readSafe(jsExtensionPath);
-      if (src) parseJsExtension(all, ext, src);
+      if (src) ingest(all, src, ext, "js");
     }
-    // C++ extensions (Extension.cpp + sibling .cpp files in same dir)
     for (const cppPath of walkCppExtensionFiles(extDir)) {
       const src = readSafe(cppPath);
-      if (src) parseCppExtension(all, ext, src);
+      if (src) ingest(all, src, ext, "cpp");
     }
   }
 
-  // 2. Core/GDCore/Extensions/Builtin/*.cpp — built-in C++ extensions
-  // Walks both flat files (e.g. AudioExtension.cpp) AND subdirectories
-  // (e.g. SpriteExtension/SpriteExtension.cpp, SpriteExtension/SpriteObject.cpp).
   const coreBuiltinPath = join(
     install.resourcesPath,
     "Core",
@@ -250,11 +143,8 @@ export function buildInstructionCatalog(
 }
 
 /**
- * Identical (type, kind, extension) entries can be produced more than once
- * when both Extension.cpp and a sibling Extension.cpp file in the same
- * directory mention the same action. We keep the first occurrence and
- * prefer the richer one (with fullName/description filled) over the bare
- * one when both exist for the same key.
+ * Same (type, kind, extension) entries can be produced more than once
+ * when sibling .cpp files share declarations. Keep the richest.
  */
 function dedupeInstructions(items: InstructionSpec[]): InstructionSpec[] {
   const bestByKey = new Map<string, InstructionSpec>();
@@ -267,9 +157,12 @@ function dedupeInstructions(items: InstructionSpec[]): InstructionSpec[] {
     }
     const existingRichness =
       (existing.fullName === existing.type ? 0 : 1) +
-      (existing.description ? 1 : 0);
+      (existing.description ? 1 : 0) +
+      existing.parameters.length;
     const candidateRichness =
-      (item.fullName === item.type ? 0 : 1) + (item.description ? 1 : 0);
+      (item.fullName === item.type ? 0 : 1) +
+      (item.description ? 1 : 0) +
+      item.parameters.length;
     if (candidateRichness > existingRichness) {
       bestByKey.set(key, item);
     }
@@ -287,8 +180,6 @@ function parseCoreBuiltinDir(all: InstructionSpec[], dir: string): void {
   for (const entry of entries) {
     const full = join(dir, entry.name);
     if (entry.isDirectory()) {
-      // e.g. SpriteExtension/<files>. The extension name is the dir name
-      // minus the trailing "Extension".
       const extName = entry.name.replace(/Extension$/, "");
       let subFiles;
       try {
@@ -298,12 +189,12 @@ function parseCoreBuiltinDir(all: InstructionSpec[], dir: string): void {
       }
       for (const f of subFiles) {
         const src = readSafe(join(full, f));
-        if (src) parseCppExtension(all, extName, src);
+        if (src) ingest(all, src, extName, "cpp");
       }
     } else if (entry.isFile() && /Extension\.cpp$/.test(entry.name)) {
       const extName = entry.name.replace(/Extension\.cpp$/, "");
       const src = readSafe(full);
-      if (src) parseCppExtension(all, extName, src);
+      if (src) ingest(all, src, extName, "cpp");
     }
   }
 }
@@ -317,16 +208,18 @@ export function findInstructions(
   opts: {
     kind?: "action" | "condition" | "expression" | "strExpression";
     extension?: string;
+    receiverKind?: ReceiverKind;
     query?: string;
     limit?: number;
   } = {},
 ): InstructionSpec[] {
-  const { kind, extension, query, limit = 100 } = opts;
+  const { kind, extension, receiverKind, query, limit = 100 } = opts;
   const q = query?.toLowerCase().trim();
   const out: InstructionSpec[] = [];
   for (const inst of catalog) {
     if (kind && inst.kind !== kind) continue;
     if (extension && inst.extension !== extension) continue;
+    if (receiverKind && inst.receiverKind !== receiverKind) continue;
     if (q) {
       const haystack =
         `${inst.type} ${inst.fullName} ${inst.description} ${inst.extension}`.toLowerCase();

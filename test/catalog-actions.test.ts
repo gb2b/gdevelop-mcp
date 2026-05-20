@@ -3,6 +3,7 @@ import {
   findInstructionByType,
   findInstructions,
   resetInstructionCatalogCache,
+  type InstructionSpec,
 } from "../src/core/catalog-actions.js";
 
 const STATIC_ONLY = (() => {
@@ -20,22 +21,26 @@ describe("catalog-actions (static)", () => {
 
   it("findInstructionByType returns the static SimulateJumpKey", async () => {
     // Direct test of helper with a hand-crafted catalog
-    const fake = [
+    const fake: InstructionSpec[] = [
       {
         type: "SimulateJumpKey",
         fullName: "Simulate jump",
         description: "",
-        kind: "action" as const,
+        kind: "action",
         extension: "PlatformBehavior",
-        source: "static" as const,
+        source: "dynamic-cpp",
+        receiverKind: "behavior",
+        parameters: [],
       },
       {
         type: "KeyPressed",
         fullName: "Key pressed",
         description: "",
-        kind: "condition" as const,
+        kind: "condition",
         extension: "BuiltinKeyboard",
-        source: "static" as const,
+        source: "dynamic-cpp",
+        receiverKind: "extension",
+        parameters: [],
       },
     ];
     const matches = findInstructionByType(fake, "SimulateJumpKey");
@@ -43,31 +48,37 @@ describe("catalog-actions (static)", () => {
     expect(matches[0].kind).toBe("action");
   });
 
-  it("findInstructions filters by kind and extension", () => {
-    const fake = [
+  it("findInstructions filters by kind, extension and receiverKind", () => {
+    const fake: InstructionSpec[] = [
       {
         type: "A",
         fullName: "",
         description: "",
-        kind: "action" as const,
+        kind: "action",
         extension: "Ext1",
-        source: "static" as const,
+        source: "dynamic-cpp",
+        receiverKind: "extension",
+        parameters: [],
       },
       {
         type: "B",
         fullName: "",
         description: "",
-        kind: "condition" as const,
+        kind: "condition",
         extension: "Ext1",
-        source: "static" as const,
+        source: "dynamic-cpp",
+        receiverKind: "object",
+        parameters: [],
       },
       {
         type: "C",
         fullName: "",
         description: "",
-        kind: "action" as const,
+        kind: "action",
         extension: "Ext2",
-        source: "static" as const,
+        source: "dynamic-cpp",
+        receiverKind: "behavior",
+        parameters: [],
       },
     ];
     expect(findInstructions(fake, { kind: "action" })).toHaveLength(2);
@@ -75,25 +86,32 @@ describe("catalog-actions (static)", () => {
     expect(
       findInstructions(fake, { kind: "action", extension: "Ext2" }),
     ).toHaveLength(1);
+    expect(findInstructions(fake, { receiverKind: "behavior" })).toHaveLength(
+      1,
+    );
   });
 
   it("findInstructions supports query and limit", () => {
-    const fake = [
+    const fake: InstructionSpec[] = [
       {
         type: "ItemA",
         fullName: "Foo bar",
         description: "",
-        kind: "action" as const,
+        kind: "action",
         extension: "Ext",
-        source: "static" as const,
+        source: "dynamic-cpp",
+        receiverKind: "extension",
+        parameters: [],
       },
       {
         type: "ItemB",
         fullName: "Foo baz",
         description: "",
-        kind: "action" as const,
+        kind: "action",
         extension: "Ext",
-        source: "static" as const,
+        source: "dynamic-cpp",
+        receiverKind: "extension",
+        parameters: [],
       },
     ];
     expect(findInstructions(fake, { query: "bar" })).toHaveLength(1);

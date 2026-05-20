@@ -1,5 +1,6 @@
 import { ProjectSchema, type Project } from "./schema.js";
 import { OBJECT_TYPES, BEHAVIOR_TYPES } from "./catalog-static.js";
+import { validateObjectContent } from "./object-content-schemas.js";
 
 export type ValidationIssue = {
   severity: "error" | "warning";
@@ -64,6 +65,19 @@ export function validateProjectData(raw: unknown): ValidationResult {
         });
       }
 
+      const contentCheck = validateObjectContent(
+        obj.type,
+        obj as Record<string, unknown>,
+      );
+      if (!contentCheck.ok) {
+        issues.push({
+          severity: "error",
+          path: objPath,
+          code: "invalid_object_content",
+          message: `Object "${obj.name}" (type ${obj.type}) has invalid content: ${contentCheck.messages.join("; ")}`,
+        });
+      }
+
       if (Array.isArray(obj.behaviors)) {
         for (let bi = 0; bi < obj.behaviors.length; bi++) {
           const beh = obj.behaviors[bi] as { type?: string };
@@ -103,6 +117,18 @@ export function validateProjectData(raw: unknown): ValidationResult {
         path: `objects[${gi}] (${obj.name})`,
         code: "unknown_object_type",
         message: `Global object type "${obj.type}" not in static catalog.`,
+      });
+    }
+    const globalCheck = validateObjectContent(
+      obj.type,
+      obj as Record<string, unknown>,
+    );
+    if (!globalCheck.ok) {
+      issues.push({
+        severity: "error",
+        path: `objects[${gi}] (${obj.name})`,
+        code: "invalid_object_content",
+        message: `Global object "${obj.name}" (type ${obj.type}) has invalid content: ${globalCheck.messages.join("; ")}`,
       });
     }
   }

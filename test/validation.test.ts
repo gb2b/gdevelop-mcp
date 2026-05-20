@@ -49,4 +49,72 @@ describe("validateProjectData", () => {
       ),
     ).toBe(true);
   });
+
+  it("flags Sprite missing required animations field", () => {
+    const project = minimalValidProject() as Record<string, unknown>;
+    (project.layouts as Array<Record<string, unknown>>)[0].objects = [
+      { name: "BrokenSprite", type: "Sprite" }, // missing `animations`
+    ];
+    const result = validateProjectData(project);
+    expect(result.valid).toBe(false);
+    expect(
+      result.issues.some(
+        (i) =>
+          i.code === "invalid_object_content" &&
+          i.path.includes("BrokenSprite"),
+      ),
+    ).toBe(true);
+  });
+
+  it("accepts Sprite with valid empty animations array", () => {
+    const project = minimalValidProject() as Record<string, unknown>;
+    (project.layouts as Array<Record<string, unknown>>)[0].objects = [
+      { name: "OkSprite", type: "Sprite", animations: [] },
+    ];
+    const result = validateProjectData(project);
+    expect(
+      result.issues.filter((i) => i.code === "invalid_object_content"),
+    ).toHaveLength(0);
+  });
+
+  it("flags TextObject without required `text` field", () => {
+    const project = minimalValidProject() as Record<string, unknown>;
+    (project.layouts as Array<Record<string, unknown>>)[0].objects = [
+      { name: "BrokenLabel", type: "TextObject::Text" }, // no text
+    ];
+    const result = validateProjectData(project);
+    expect(result.valid).toBe(false);
+    expect(
+      result.issues.some(
+        (i) =>
+          i.code === "invalid_object_content" && i.path.includes("BrokenLabel"),
+      ),
+    ).toBe(true);
+  });
+
+  it("accepts unknown object types silently (per-content check skipped)", () => {
+    const project = minimalValidProject() as Record<string, unknown>;
+    (project.layouts as Array<Record<string, unknown>>)[0].objects = [
+      { name: "Custom", type: "MyExt::MyEventsObject" }, // no schema registered
+    ];
+    const result = validateProjectData(project);
+    expect(
+      result.issues.filter((i) => i.code === "invalid_object_content"),
+    ).toHaveLength(0);
+  });
+
+  it("supports the alternative `content.*` nested layout", () => {
+    const project = minimalValidProject() as Record<string, unknown>;
+    (project.layouts as Array<Record<string, unknown>>)[0].objects = [
+      {
+        name: "NestedSprite",
+        type: "Sprite",
+        content: { animations: [] },
+      },
+    ];
+    const result = validateProjectData(project);
+    expect(
+      result.issues.filter((i) => i.code === "invalid_object_content"),
+    ).toHaveLength(0);
+  });
 });

@@ -125,6 +125,12 @@ export function registerCatalogTools(server: McpServer): void {
         .describe(
           "Filter by extension name (e.g. 'PlatformBehavior', 'BuiltinKeyboard', 'Sprite')",
         ),
+      receiverKind: z
+        .enum(["extension", "object", "behavior", "unknown"])
+        .optional()
+        .describe(
+          "Filter by what the instruction is attached to. 'extension' = free function; 'object' / 'behavior' = scoped to an object or behavior.",
+        ),
       query: z
         .string()
         .optional()
@@ -133,13 +139,14 @@ export function registerCatalogTools(server: McpServer): void {
         ),
       limit: z.number().int().positive().max(500).optional(),
     },
-    async ({ kind, extension, query, limit }) => {
+    async ({ kind, extension, receiverKind, query, limit }) => {
       try {
         const install = findGDevelopInstall();
         const catalog = buildInstructionCatalog(install);
         const matches = findInstructions(catalog, {
           kind,
           extension,
+          receiverKind,
           query,
           limit,
         });

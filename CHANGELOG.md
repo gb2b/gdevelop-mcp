@@ -3,6 +3,61 @@
 All notable changes to this project are documented here. Versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.20.0] — 2026-05-20
+
+### Added — instruction catalog: receiver + parameters
+
+- **`InstructionSpec.receiver`** — raw identifier preceding `.AddXxx`
+  in the source (e.g. `extension`, `obj`, `aut`). Captured for every
+  instruction in C++ and JS extensions.
+- **`InstructionSpec.receiverKind`** — normalized to `"extension" |
+"object" | "behavior" | "unknown"`. Lets agents distinguish free-
+  function instructions from those scoped to an object or behavior.
+- **`InstructionSpec.parameters: ParamSpec[]`** — full signature
+  captured from chained `.AddParameter(...)` (and
+  `.AddCodeOnlyParameter(...)`) calls. Each `ParamSpec` exposes:
+  - `type` (e.g. `"object"`, `"expression"`, `"string"`, `"key"`,
+    `"behavior"`),
+  - `description`, `extraInfo`, `optional`.
+    Now ~92% of catalogued instructions carry their parameter chain
+    (~2003 of 2174).
+- **`list_instructions`** tool gains a `receiverKind` filter, so agents
+  can ask for "all behavior-scoped actions on PlatformBehavior" etc.
+- **`AddExpressionAndCondition` / `AddExpressionAndConditionForObject`**
+  now correctly emit both a `condition` and an `expression` entry that
+  share the same parameter chain.
+
+### Added — per-type content validation
+
+- **`src/core/object-content-schemas.ts`** — zod schemas for the major
+  built-in object types: `Sprite`, `TextObject::Text`,
+  `TiledSpriteObject::TiledSprite`, `PanelSpriteObject::PanelSprite`,
+  `PrimitiveDrawing::Drawer`, `BBText::BBText`, `TileMap::TileMap`,
+  `Video::VideoObject`, `TextEntryObject::TextEntry`.
+- **`validate_project`** now flags `invalid_object_content` errors when
+  required fields are missing (e.g. a `Sprite` without `animations`,
+  a `TextObject::Text` without `text`).
+- Unknown object types are skipped silently for per-content checking
+  (the generic `unknown_object_type` warning still fires).
+- Accepts either flat-root layout (built-in objects) or nested
+  `content: { ... }` (forward-compat with newer events-based formats).
+
+### Added — tests
+
+- `test/catalog-parsers.test.ts` — 5 cases covering C++ + JS parsing
+  with receiver + parameters + dual instructions.
+- 5 new cases in `test/validation.test.ts` for content schemas.
+
+### Internal
+
+- New module `src/core/catalog-parsers.ts` — bracket-matching parser
+  for `.AddXxx(...).AddParameter(...)` chains. Handles C++ and JS,
+  i18n `_(...)` macros, single/double-quoted literals, template
+  literals (best-effort).
+- `src/core/catalog-actions.ts` refactored to delegate parsing to the
+  new module; STATIC_INSTRUCTIONS now fully derived from sources.
+- Dedup heuristic now prefers the richest entry (param count counts).
+
 ## [0.19.1] — 2026-05-20
 
 ### Added
