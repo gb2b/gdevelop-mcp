@@ -20,10 +20,11 @@ import { registerAssetsTools } from "./tools/assets.js";
 import { registerExamplesTools } from "./tools/examples.js";
 import { registerGithubTools } from "./tools/github.js";
 import { registerPreviewTools } from "./tools/preview.js";
+import { registerTemplatesTools } from "./tools/templates.js";
 
 const server = new McpServer({
   name: "gdevelop-mcp",
-  version: "0.18.0",
+  version: "0.19.0",
 });
 
 registerInstallTools(server);
@@ -36,6 +37,7 @@ registerAssetsTools(server);
 registerExamplesTools(server);
 registerGithubTools(server);
 registerPreviewTools(server);
+registerTemplatesTools(server);
 registerPrompts(server);
 
 const transport = new StdioServerTransport();

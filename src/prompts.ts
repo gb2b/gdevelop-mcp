@@ -199,4 +199,52 @@ export function registerPrompts(server: McpServer): void {
       ],
     }),
   );
+
+  server.prompt(
+    "create-platformer",
+    "End-to-end workflow to bootstrap a playable platformer from scratch: scaffold via quick_start_template, import CC0 assets for the hero + tiles, wire keyboard controls via add_event, and preview the result.",
+    {
+      targetPath: z
+        .string()
+        .describe(
+          "Absolute path where the new .json project should be created",
+        ),
+      name: z.string().describe("Project name"),
+      heroTheme: z
+        .string()
+        .optional()
+        .describe(
+          "Theme keyword for asset search (e.g. 'cute knight', 'pixel adventurer'). Defaults to 'platformer hero'.",
+        ),
+    },
+    ({ targetPath, name, heroTheme }) => ({
+      messages: [
+        {
+          role: "user",
+          content: {
+            type: "text",
+            text: [
+              `Bootstrap a playable platformer at ${targetPath} (name: "${name}").`,
+              "",
+              "Execute this workflow — do NOT modify anything outside the target path:",
+              "",
+              `1. quick_start_template({targetPath: "${targetPath}", name: "${name}", genre: "platformer"}) — scaffolds the project with a Player + Ground.`,
+              `2. validate_project({path: "${targetPath}"}) — confirm the scaffold is valid.`,
+              `3. search_assets({query: "${heroTheme ?? "platformer hero"}", license: "CC0 (public domain)", objectType: "sprite", limit: 4}) — find a hero sprite.`,
+              "4. Show me the candidates. I pick one.",
+              `5. import_assets_into_project({projectPath: "${targetPath}", assetIds: ["<picked>"], scope: "scene", scene: "Level1", placeAt: {x: 100, y: 350}}) — bring in the hero.`,
+              `6. search_assets({query: "platformer tile ground", license: "CC0 (public domain)", objectType: "sprite", limit: 4}) and similarly import a ground tile.`,
+              "7. Build a single edit_project batch (dryRun:true) that:",
+              "   - attaches the imported hero's instance to the PlatformerObject behavior",
+              `   - adds keyboard control events: KeyPressed("Left") → SimulateLeftKey, KeyPressed("Right") → SimulateRightKey, KeyPressed("Space") → SimulateJumpKey`,
+              "8. Show me the summary, wait for my approval, then dryRun:false.",
+              `9. render_scene_static({projectPath: "${targetPath}", showLabels: true}) — confirm the layout.`,
+              `10. preview_scene({projectPath: "${targetPath}", durationMs: 4000}) — confirm the gameplay actually runs.`,
+              "11. inspect_project + diff_projects against the latest backup so I can audit.",
+            ].join("\n"),
+          },
+        },
+      ],
+    }),
+  );
 }

@@ -141,17 +141,25 @@ agent> preview_scene(projectPath: "/path/to/game.json")
 | `list_instructions`      | ~1830 actions/conditions/expressions parsed live from C++ + JS |
 | `describe_instruction`   | All catalog entries matching a type (e.g. `SimulateJumpKey`)   |
 
+### Templates (1)
+
+| Tool                   | Purpose                                                            |
+| ---------------------- | ------------------------------------------------------------------ |
+| `quick_start_template` | Scaffold a valid GDevelop project (blank/platformer/topdown/shmup) |
+
 ### Editing & safety (7)
 
-| Tool               | Purpose                                                                                     |
-| ------------------ | ------------------------------------------------------------------------------------------- |
-| `inspect_project`  | Compact human-readable project summary                                                      |
-| `validate_project` | Structural + cross-reference validation                                                     |
-| `edit_project`     | Atomic batch ops: layouts, objects, instances, behaviors, **events**, **custom extensions** |
-| `summarize_events` | Per-type breakdown + max depth of a scene's events tree                                     |
-| `list_backups`     | Backup files for a project                                                                  |
-| `undo_last_edit`   | Restore most recent backup (reversible — itself backed up first)                            |
-| `diff_projects`    | Semantic diff (added/removed/modified)                                                      |
+| Tool                        | Purpose                                                                                     |
+| --------------------------- | ------------------------------------------------------------------------------------------- |
+| `inspect_project`           | Compact human-readable project summary                                                      |
+| `validate_project`          | Structural + cross-reference validation                                                     |
+| `find_in_events`            | Regex grep over the events tree (refactoring audit)                                         |
+| `list_project_dependencies` | Inventory of object/behavior/resource/instruction types used                                |
+| `edit_project`              | Atomic batch ops: layouts, objects, instances, behaviors, **events**, **custom extensions** |
+| `summarize_events`          | Per-type breakdown + max depth of a scene's events tree                                     |
+| `list_backups`              | Backup files for a project                                                                  |
+| `undo_last_edit`            | Restore most recent backup (reversible — itself backed up first)                            |
+| `diff_projects`             | Semantic diff (added/removed/modified)                                                      |
 
 ### Asset store (5)
 

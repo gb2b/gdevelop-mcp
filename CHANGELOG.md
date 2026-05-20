@@ -3,6 +3,38 @@
 All notable changes to this project are documented here. Versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.19.0] — 2026-05-20
+
+### Added
+
+- **`quick_start_template`** tool — bootstrap a valid GDevelop project at
+  a path in one call. Four genres:
+  - `blank` — empty scene
+  - `platformer` — Player (Sprite + PlatformerObjectBehavior) + Ground
+    (Sprite + PlatformBehavior), one instance each
+  - `topdown` — Player (Sprite + TopDownMovementBehavior)
+  - `shmup` — Player + Bullet (DestroyOutsideBehavior)
+
+  Refuses to overwrite an existing file unless `overwrite: true`.
+  Generated projects pass `validate_project`.
+
+- **`create-platformer`** prompt — end-to-end workflow that scaffolds
+  via `quick_start_template`, imports CC0 hero + tile assets, wires
+  keyboard control events, and previews — all with explicit confirmation
+  pauses.
+
+### Tests
+
+- +13 tests (templates × 6, edit-remove-rename × 7). Total: 83 (was 70).
+
+### Known future work
+
+- Capture of the C++ receiver in `Extension.cpp` (`extension.AddAction`
+  vs `<obj>.AddAction` vs `<behavior>.AddAction`) is still on the
+  roadmap. Today's catalog treats them all uniformly; the agent has to
+  read the source if it needs to know whether an action belongs to the
+  object or the behavior.
+
 ## [0.18.0] — 2026-05-20
 
 ### Added — 5 new edit_project ops
