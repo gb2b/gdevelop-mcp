@@ -1,10 +1,20 @@
 version: 2
 updates:
+  # npm/pnpm packages — weekly with a 7-day cooldown.
+  # The cooldown gives the ecosystem time to spot supply-chain attacks
+  # (compromised maintainer accounts, malicious post-install scripts, etc.)
+  # before we propose adopting a new release. Combined with the strict
+  # pnpm.onlyBuiltDependencies whitelist, this is our two-layer defense.
   - package-ecosystem: npm
     directory: /
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    cooldown:
+      default-days: 7
+      semver-major-days: 14
+      semver-minor-days: 7
+      semver-patch-days: 3
     groups:
       dev-deps:
         dependency-type: development
@@ -17,6 +27,8 @@ updates:
     directory: /
     schedule:
       interval: monthly
+    cooldown:
+      default-days: 14
     labels:
       - dependencies
       - ci

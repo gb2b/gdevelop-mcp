@@ -1,7 +1,7 @@
 {
   "name": "gdevelop-mcp",
-  "version": "0.17.0",
-  "description": "MCP server for GDevelop project introspection and validation",
+  "version": "0.17.1",
+  "description": "MCP server for GDevelop project introspection, editing, and preview — backed by the canonical 4ian/GDevelop GitHub repo.",
   "type": "module",
   "bin": {
     "gdevelop-mcp": "dist/index.js"
@@ -22,13 +22,13 @@
     "lint:fix": "eslint src test --fix",
     "format": "prettier --write \"{src,test}/**/*.{ts,js}\" \"*.md\"",
     "format:check": "prettier --check \"{src,test}/**/*.{ts,js}\" \"*.md\"",
-    "check": "npm run typecheck && npm run lint && npm test",
-    "inspect": "npx @modelcontextprotocol/inspector tsx src/index.ts"
+    "check": "pnpm typecheck && pnpm lint && pnpm test",
+    "audit:supply-chain": "pnpm audit --audit-level=high --prod",
+    "inspect": "pnpm dlx @modelcontextprotocol/inspector tsx src/index.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.0",
     "@napi-rs/canvas": "^1.0.0",
-    "gdcore-tools": "^2.0.0-gd-v5.6.269-autobuild",
     "gdexporter": "^4.0.0-beta7",
     "puppeteer": "^25.0.4",
     "zod": "^4.4.3"
@@ -46,5 +46,13 @@
   },
   "engines": {
     "node": ">=18"
+  },
+  "packageManager": "pnpm@11.1.2",
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@napi-rs/canvas",
+      "esbuild",
+      "puppeteer"
+    ]
   }
 }

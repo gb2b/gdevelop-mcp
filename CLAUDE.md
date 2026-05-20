@@ -37,6 +37,7 @@ test/                 # vitest unit tests
 | Test rules                    | [`.claude/rules/testing.md`](./.claude/rules/testing.md)                             |
 | Update README after tool add  | [`.claude/skills/update-readme/SKILL.md`](./.claude/skills/update-readme/SKILL.md)   |
 | Audit the repo health         | [`.claude/skills/audit-repo/SKILL.md`](./.claude/skills/audit-repo/SKILL.md)         |
+| Supply chain rules            | [`.claude/rules/supply-chain.md`](./.claude/rules/supply-chain.md)                   |
 | Debug the MCP server          | [`.claude/skills/debug-mcp/SKILL.md`](./.claude/skills/debug-mcp/SKILL.md)           |
 
 ## Hard rules
@@ -50,16 +51,16 @@ These override everything else:
 3. **Anything writing to stdout from a 3rd-party package** (gdexporter,
    gdcore-tools, etc.) MUST run in an isolated subprocess — the MCP transport
    uses our own stdout.
-4. **Run `npm run typecheck && npm test` before claiming work is done.**
+4. **Run `pnpm typecheck && pnpm test` before claiming work is done.**
 5. **Never commit to `main` without:** tests green, types green, README +
    CHANGELOG updated if user-visible.
 
 ## Quick commands
 
 ```bash
-npm run build      # tsc → dist/
-npm run typecheck  # tsc --noEmit
-npm test           # vitest run
-npm run dev        # run the MCP via tsx (no build needed)
-npm run inspect    # MCP Inspector UI for manual tool testing
+pnpm build      # tsc → dist/
+pnpm typecheck  # tsc --noEmit
+pnpm test           # vitest run
+pnpm dev        # run the MCP via tsx (no build needed)
+pnpm inspect    # MCP Inspector UI for manual tool testing
 ```

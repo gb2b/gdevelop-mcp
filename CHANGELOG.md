@@ -3,6 +3,38 @@
 All notable changes to this project are documented here. Versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.17.1] — 2026-05-20
+
+### Supply chain hardening
+
+- **Switched to pnpm 11**. `package-lock.json` removed, `pnpm-lock.yaml`
+  committed. `packageManager: "pnpm@11.1.2"` pins the version. All docs
+  and scripts updated to use `pnpm`.
+- **Lifecycle-script allow-list**: pnpm 11 blocks postinstall scripts by
+  default. The only packages allowed to run them are declared explicitly
+  in `package.json#pnpm.onlyBuiltDependencies` (`@napi-rs/canvas`,
+  `esbuild`, `puppeteer`). Transitive rogue postinstalls cannot run.
+- **CI installs with `--ignore-scripts --frozen-lockfile`** — install is
+  fully deterministic and zero-trust; build/tests run separately.
+- **CI runs `pnpm audit --audit-level=high --prod`** on every PR. Fails
+  on any high/critical vulnerability in production deps.
+- **Dependabot 7-day cooldown** (`semver-patch: 3d`, `semver-minor: 7d`,
+  `semver-major: 14d`). GH Actions get 14 days. Most supply-chain attacks
+  are detected within hours/days — this keeps us out of the canary zone.
+- **New rule** `.claude/rules/supply-chain.md` documents the three-layer
+  defense (allow-list + cooldown + audit gate) and the incident response
+  playbook.
+- **Coverage** activated: `pnpm test:coverage` runs in CI (non-blocking).
+- Removed `gdcore-tools` from direct dependencies — already an
+  implicit/transitive dep of `gdexporter`, only used for `preview_scene`.
+
+### Internal
+
+- Top-level `pnpm` config in `package.json` lists trusted build-script
+  packages.
+- `.npmrc` enforces `prefer-frozen-lockfile`, `audit-level=high`,
+  `ignore-dep-scripts=true`.
+
 ## [0.17.0] — 2026-05-20
 
 ### Architecture / refactor

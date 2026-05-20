@@ -17,22 +17,26 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.1.2
+
       - name: Setup Node
         uses: actions/setup-node@v6
         with:
           node-version-file: ".nvmrc"
-          cache: npm
+          cache: pnpm
 
       - name: Install dependencies
         env:
           PUPPETEER_SKIP_DOWNLOAD: "true"
-        run: npm ci
+        run: pnpm install --frozen-lockfile --ignore-scripts
 
       - name: Build
-        run: npm run build
+        run: pnpm build
 
       - name: Extract CHANGELOG section for this tag
-        id: changelog
         env:
           TAG_NAME: ${{ github.ref_name }}
         run: |
@@ -46,7 +50,6 @@ jobs:
             echo "No CHANGELOG section for version $VERSION — using fallback note." >&2
             echo "See CHANGELOG.md for details." > release-notes.md
           fi
-          echo "BODY_FILE=release-notes.md" >> "$GITHUB_OUTPUT"
 
       - name: Create GitHub Release
         env:

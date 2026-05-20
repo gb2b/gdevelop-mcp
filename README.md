@@ -53,11 +53,17 @@ What you can do with an agent that speaks gdevelop-mcp:
 ```bash
 git clone https://github.com/gb2b/gdevelop-mcp
 cd gdevelop-mcp
-npm install
-npm run build
+pnpm install
+pnpm build
 ```
 
-> Requires Node 18+. Puppeteer downloads Chromium (~170 MB) on first install.
+> Requires Node 18+ and **pnpm 11+** (enabled via Corepack on modern Node).
+> Puppeteer downloads Chromium (~170 MB) on first install.
+> Supply-chain protections are on by default: lifecycle scripts are
+> blocked except for the explicit allow-list (`@napi-rs/canvas`,
+> `esbuild`, `puppeteer`); Dependabot waits 7 days before proposing new
+> releases. See [`.claude/rules/supply-chain.md`](./.claude/rules/supply-chain.md)
+> for the full policy.
 
 Wire the MCP into your agent. For Claude Code, drop a `.mcp.json` in your
 project (or your home) with:

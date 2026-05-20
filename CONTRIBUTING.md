@@ -10,9 +10,9 @@ projects.
 ```bash
 git clone <repo>
 cd gdevelop-mcp
-npm install
-npm run build
-npm test
+pnpm install
+pnpm build
+pnpm test
 ```
 
 You need a local GDevelop installation; the MCP auto-detects it. Override
@@ -42,7 +42,7 @@ checklist. In short:
 2. Register the tool in `src/index.ts` with a Zod input schema and a clear
    description (including how it interacts with other tools).
 3. Add a unit test in `test/`.
-4. Run `npm run typecheck && npm test`.
+4. Run `pnpm typecheck && pnpm test`.
 5. Update `CHANGELOG.md` and `README.md`.
 
 ## Conventions
@@ -74,8 +74,8 @@ checklist.
 ## Running tests
 
 ```bash
-npm test           # one-shot
-npm run test:watch # watch mode
+pnpm test           # one-shot
+pnpm test:watch # watch mode
 ```
 
 Tests use vitest and live in `test/`. Each test file mirrors a `src/core/`
